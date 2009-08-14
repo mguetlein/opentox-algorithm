@@ -9,10 +9,10 @@ OpenTox Fminer
 
 REST API
 
-Description						Method	URI		Parameters							Result								Status codes
+Description           Method  URI   Parameters              Result                Status codes
 
-Create BBRC features 	POST		/			Activity dataset URI		Feature dataset URI		200, 500
-for a dataset	
+Create BBRC features  POST    /     Activity dataset URI    Feature dataset URI   200, 500
+for a dataset 
 
 INSTALLATION
 
