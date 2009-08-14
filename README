@@ -1,0 +1,21 @@
+OpenTox Fminer
+=============
+
+* An OpenTox REST Webservice (http://www.opentox.org)
+* REST interface for the Fminer library (http://github.com/amaunz/libfminer)
+* Identifies substructures (linear fragments, trees, backbone refinement classes) in datasets 
+* Implements a subset of the OpenTox algorithm API (http://opentox.org/wiki/opentox/Structure).
+* Runs at http://webservices.in-silico.ch/fminer
+
+REST API
+
+Description						Method	URI		Parameters							Result								Status codes
+
+Create BBRC features 	POST		/			Activity dataset URI		Feature dataset URI		200, 500
+for a dataset	
+
+INSTALLATION
+
+Run 'rake install' to install the required gems and libfminer
+
+Copyright (c) 2009 Christoph Helma. See LICENSE for details.
