@@ -12,9 +12,9 @@
 	<tr>
 		<th>Description</th>	<th>Method</th>	<th>URI</th>	<th>Parameters</th>	<th>Result</th>	<th>Status codes</th>
 	</tr><tr>
-		<td>Create BBRC features for a dataset</td>	<td>POST</td>	<td>/</td>	<td>Activity dataset URI</td>	<td>Feature dataset URI</td>	<td>200, 500
+		<td>Create BBRC features for a dataset</td>	<td>POST</td>	<td>/</td>	<td>Activity dataset URI</td>	<td>Feature dataset URI</td>	<td>200, 500</td>
 	</tr>
-<table>
+</table>
 
 == INSTALLATION
 
