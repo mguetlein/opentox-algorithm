@@ -5,7 +5,7 @@ end
 ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 
-post '/' do
+post '/?' do
 
 	training_dataset = OpenTox::Dataset.new :uri => params[:dataset_uri]
 	fminer = Fminer::Fminer.new

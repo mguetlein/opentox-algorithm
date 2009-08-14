@@ -3,13 +3,14 @@ require 'rake'
 
 desc "Install required gems and openbabel"
 task :install do
-	`sudo gem sources -a http://gems.github.com`
-	`sudo gem install sinatra helma-opentox-ruby-api`
-	`git submodule init`
-	`git submodule update`
-	Dir.cd('libfminer')
-	`git pull`
-	`make ruby`
+	puts `sudo gem sources -a http://gems.github.com`
+	puts `sudo gem install sinatra helma-opentox-ruby-api-wrapper`
+	puts `git submodule init`
+	puts `git submodule update`
+	Dir.chdir('libfminer')
+	puts `git checkout master`
+	puts `git pull`
+	puts `make ruby`
 end
 
 desc "Run tests"

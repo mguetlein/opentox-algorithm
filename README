@@ -5,7 +5,7 @@ OpenTox Fminer
 * REST interface for the Fminer library (http://github.com/amaunz/libfminer)
 * Identifies substructures (linear fragments, trees, backbone refinement classes) in datasets 
 * Implements a subset of the OpenTox algorithm API (http://opentox.org/wiki/opentox/Structure).
-* Runs at http://webservices.in-silico.ch/fminer
+* Current version runs at http://webservices.in-silico.ch/fminer/v0
 
 REST API
 
