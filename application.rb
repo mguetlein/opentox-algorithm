@@ -4,11 +4,11 @@ end
 
 ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
+@@fminer = Fminer::Fminer.new
 
 post '/?' do
 
 	training_dataset = OpenTox::Dataset.new :uri => params[:dataset_uri]
-	fminer = Fminer::Fminer.new
 
 	compounds = training_dataset.compounds
 	endpoint_name = training_dataset.name
@@ -22,26 +22,28 @@ post '/?' do
 			case activity.to_s
 			when 'true'
 				compound_list[id] = c
-				fminer.AddCompound(smiles,id)
-				fminer.AddActivity(true, id)
+				@@fminer.AddCompound(smiles,id)
+				@@fminer.AddActivity(true, id)
 			when 'false'
 				compound_list[id] = c
-				fminer.AddCompound(smiles,id)
-				fminer.AddActivity(false, id)
+				@@fminer.AddCompound(smiles,id)
+				@@fminer.AddActivity(false, id)
 			end
 		end
 		id += 1
 	end
 
-	fminer.SetConsoleOut(false)
+	@@fminer.SetConsoleOut(false)
 	features = []
-	# run fminer
-	(0 .. fminer.GetNoRootNodes()-1).each do |j|
-		result = fminer.MineRoot(j)
+	# run @@fminer
+	(0 .. @@fminer.GetNoRootNodes()-1).each do |j|
+		result = @@fminer.MineRoot(j)
 	 (0 .. result.size-1).each do |i|
 		 features << YAML.load(result[i])[0]
 		end
 	end
+
+	@@fminer.Reset
 
 	smarts_dataset = OpenTox::Dataset.new(:name => endpoint_name + ' BBRC fragments')
 
