@@ -43,7 +43,7 @@ post '/?' do
 		end
 	end
 
-	smarts_dataset = OpenTox::Dataset.new(:name => endpoint_name + ' fragments')
+	smarts_dataset = OpenTox::Dataset.new(:name => endpoint_name + ' BBRC fragments')
 
 	features.each do |f|
 		smarts = f[0]
@@ -61,6 +61,7 @@ post '/?' do
 		end
 	end
 
+	smarts_dataset.close
 	smarts_dataset.uri
 
 end
