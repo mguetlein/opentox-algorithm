@@ -14,7 +14,7 @@ post '/?' do
 	compound_list = []
 	dataset.compounds.each do |c|
 		begin
-			activities = dataset.features(c,'activity')
+			activities = dataset.features(c)
 		rescue
 			puts "could not get activities for #{c.uri}"
 			next
@@ -42,7 +42,6 @@ post '/?' do
 	(0 .. @@fminer.GetNoRootNodes()-1).each do |j|
 		result = @@fminer.MineRoot(j)
 	 (0 .. result.size-1).each do |i|
-		 #puts result[i]
 		 features << YAML.load(result[i])[0]
 		end
 	end
@@ -65,7 +64,8 @@ post '/?' do
 		end
 	end
 
-	dataset.add_features(smarts_features,"BBRC_representatives")
-	dataset.uri
+	feature_dataset = OpenTox::Dataset.create :name => dataset.name + "_BBRC_representatives"
+	feature_dataset.add(smarts_features)
+	feature_dataset.uri
 
 end

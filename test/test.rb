@@ -12,6 +12,8 @@ class FminerTest < Test::Unit::TestCase
   end
 
 	def setup
+		@dataset = OpenTox::Dataset.create :name => "Hamster Carcinogenicity"
+	 	@dataset.import :csv => File.join(File.dirname(__FILE__), "hamster_carcinogenicity.csv"), :compound_format => "smiles"
 	end
 
 	def teardown
@@ -19,12 +21,13 @@ class FminerTest < Test::Unit::TestCase
 	end
 
 	def test_create_bbrc
-		@dataset = OpenTox::Dataset.create :name => "Hamster Carcinogenicity"
-	 	@dataset.import :csv => File.join(File.dirname(__FILE__), "hamster_carcinogenicity.csv"), :compound_format => "smiles", :feature_type => "activity"
 		post '/', :dataset_uri => @dataset.uri
 		assert last_response.ok?
-		response = `curl "#{File.join(@dataset.uri , 'compound/InChI=1S/C12H9NO2/c14-13(15)11-7-6-9-5-4-8-2-1-3-10(11)12(8)9/h1-3,6-7H,4-5H2/BBRC_representatives')}"`
-		assert response != nil
+		@feature_dataset = OpenTox::Dataset.find :uri => last_response.body
+		assert last_response.body.include?('_BBRC_representatives')
+		response = `curl "#{File.join(@dataset.uri + '_BBRC_representatives' , 'compound/InChI=1S/C12H9NO2/c14-13(15)11-7-6-9-5-4-8-2-1-3-10(11)12(8)9/h1-3,6-7H,4-5H2/')}"`
+		assert !response.include?('not found')
 		puts response
+		@feature_dataset.delete
 	end
 end
