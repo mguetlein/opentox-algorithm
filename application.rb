@@ -13,12 +13,7 @@ post '/?' do
 	id = 1
 	compound_list = []
 	dataset.compounds.each do |c|
-		begin
-			activities = dataset.features(c)
-		rescue
-			puts "could not get activities for #{c.uri}"
-			next
-		end
+		activities = dataset.features(c)
 		smiles = c.smiles
 		activities.each do |feature|
 			activity = feature.value('classification')
