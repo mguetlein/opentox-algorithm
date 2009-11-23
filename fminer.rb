@@ -1,50 +1,48 @@
+require 'redland'
+require 'rdf/redland'
+require 'rdf/redland/util'
+
 ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Fminer::Fminer.new
 
+@@storage = Redland::MemoryStore.new
+@@training_data = Redland::Model.new @storage
+@@feature_data = Redland::Model.new @storage
+@@parser = Redland::Parser.new
+@@serializer = Redland::Serializer.new
+
+
 post '/fminer/?' do
 
-	#t =Time.now
-	dataset = OpenTox::Dataset.find :uri => params[:dataset_uri]
-	feature_dataset = OpenTox::Dataset.create :name => dataset.name + "_BBRC_representatives"
-	#task = OpenTox::Task.create(:resource_uri => feature_dataset.uri)
-	#Spork.spork do
-		#task.start
-		id = 1
-		compound_list = []
-		dataset.compounds.each do |c|
-			activities = dataset.features(c)
-			smiles = c.smiles
-			activities.each do |feature|
-				activity = feature.value('classification')
-				case activity.to_s
-				when 'true'
-					compound_list[id] = c.uri
-					@@fminer.AddCompound(smiles,id)
-					@@fminer.AddActivity(true, id)
-				when 'false'
-					compound_list[id] = c.uri
-					@@fminer.AddCompound(smiles,id)
-					@@fminer.AddActivity(false, id)
-				end
-			end
-			id += 1
+	dataset = OpenTox::Dataset.find params[:dataset_uri]
+	@@parser.parse_string_into_model(@@training_data,dataset,'/')
+	feature = Redland::Uri.new params[:feature_uri]
+
+	id = 1
+	compound_list = []
+	@@training_data.find(nil,feature,nil) do |c,f,v|
+		compound = OpenTox::Compound.new(:uri => c.to_s)
+		smiles = compound.smiles
+		if v.to_s == "true"
+			compound_list[id] = c
+			@@fminer.AddCompound(smiles,id)
+			@@fminer.AddActivity(true, id)
+		elsif v.to_s == "false"
+			compound_list[id] = c
+			@@fminer.AddCompound(smiles,id)
+			@@fminer.AddActivity(false, id)
 		end
+		id += 1
+	end
 
-		@@fminer.SetConsoleOut(false)
-		features = []
-		# run @@fminer
-		(0 .. @@fminer.GetNoRootNodes()-1).each do |j|
-			results = @@fminer.MineRoot(j)
-			results.each do |result|
-				features << YAML.load(result)[0]
-			end
-		end
-
-		@@fminer.Reset
-
-		smarts_features = {}
-		features.each do |f|
+	@@fminer.SetConsoleOut(false)
+	features = ""
+	# run @@fminer
+	(0 .. @@fminer.GetNoRootNodes()-1).each do |j|
+		results = @@fminer.MineRoot(j)
+		results.each do |result|
+			f = YAML.load(result)[0]
 			smarts = f[0]
 			p = f[1]
 			ids = f[2] + f[3]
@@ -54,23 +52,18 @@ post '/fminer/?' do
 				effect = 'deactivating'
 			end
 			ids.each do |id|
-				smarts_features[compound_list[id]] = [] unless smarts_features[compound_list[id]]
-				smarts_features[compound_list[id]] << OpenTox::Feature.new(:name => smarts, :p_value => p, :effect => effect).uri
+				feature = Redland::Uri.new(smarts)
+				p_value = Redland::Uri.new(url_for('/fminer/p_value', :full))
+				eff = Redland::Uri.new(url_for('/fminer/effect', :full))
+				@@feature_data.add(compound_list[id], Redland::Uri.new(url_for('/fminer',:full)), feature)
+				@@feature_data.add(feature, p_value, Redland::Literal.new(p.to_s))
+				@@feature_data.add(feature, eff, Redland::Literal.new(effect))
 			end
 		end
+	end
 
-		#d = Time.now - t
-		#t = Time.now
-		#puts "# FMINER creates dataset #{d}"
-		#File.open("/tmp/features.tmp",'w+') { |f| f.print smarts_features.to_yaml }
-		#feature_dataset.add("/tmp/features.tmp")
-		feature_dataset.add(smarts_features.to_yaml)
-		#d = Time.now - t
-		#$stderr.puts "# FMINER finished #{feature_dataset.uri} #{d}"
-		puts "# FMINER finished #{feature_dataset.uri}"
-		#task.completed
-	#end
-	#task.uri
-	feature_dataset.uri
+	@@fminer.Reset
+
+	OpenTox::Dataset.create(@@feature_data.to_string).uri
 
 end
