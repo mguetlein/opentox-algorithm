@@ -5,6 +5,6 @@ require 'opentox-ruby-api-wrapper'
 #require 'smarts.rb'
 #require 'similarity.rb'
 require 'fminer.rb'
-#require 'lazar.rb'
+require 'lazar.rb'
 
 set :default_content, :yaml
