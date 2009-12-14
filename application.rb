@@ -7,4 +7,8 @@ require 'opentox-ruby-api-wrapper'
 require 'fminer.rb'
 require 'lazar.rb'
 
-set :default_content, :yaml
+#set :default_content, :yaml
+
+get '/?' do
+	[ url_for('/lazar', :full), url_for('/fminer', :full) ].join("\n")
+end

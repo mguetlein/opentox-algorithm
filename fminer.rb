@@ -2,63 +2,79 @@ ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Fminer::Fminer.new
 
+get '/fminer/?' do
+	OpenTox::Algorithm::Fminer.new.rdf
+end
+
 post '/fminer/?' do
 
-	#storage = Redland::MemoryStore.new
-	parser = Redland::Parser.new
+	#task = OpenTox::Task.create
 
-	training_data = Redland::Model.new Redland::MemoryStore.new
-	feature_data = Redland::Model.new Redland::MemoryStore.new
+	#Spork.spork do
 
-	dataset = OpenTox::Dataset.find params[:dataset_uri]
-	parser.parse_string_into_model(training_data,dataset,'/')
-	feature = Redland::Uri.new params[:feature_uri]
+		#task.start
 
-	id = 1
-	compound_list = []
-	training_data.find(nil,feature,nil) do |c,f,v|
-		compound = OpenTox::Compound.new(:uri => c.to_s)
-		smiles = compound.smiles
-		if v.to_s == "true"
-			compound_list[id] = c
-			@@fminer.AddCompound(smiles,id)
-			@@fminer.AddActivity(true, id)
-		elsif v.to_s == "false"
-			compound_list[id] = c
-			@@fminer.AddCompound(smiles,id)
-			@@fminer.AddActivity(false, id)
-		end
-		id += 1
-	end
+		feature_uri = params[:feature_uri] or halt 404, "Please submit a feature_uri parameter."
+		training_dataset = OpenTox::Dataset.find params[:dataset_uri]
+		feature_dataset = OpenTox::Dataset.new
+		feature_dataset.title = "BBRC representatives for " + training_dataset.title
+		feature_dataset.source = url_for('/fminer',:full)
+		bbrc_feature = feature_dataset.find_or_create_feature(:name => "BBRC representative", :source => url_for("/fminer",:full))
 
-	@@fminer.SetConsoleOut(false)
-	@@fminer.SetChisqSig(0.95)
-	features = ""
-	# run @@fminer
-	(0 .. @@fminer.GetNoRootNodes()-1).each do |j|
-		results = @@fminer.MineRoot(j)
-		results.each do |result|
-			f = YAML.load(result)[0]
-			feature = Redland::Uri.new(f[0]) # smarts
-			p_value = Redland::Uri.new(url_for('/fminer/p_value', :full))
-			feature_data.add(feature, p_value, Redland::Literal.new(f[1].to_s)) # p_value
-			ids = f[2] + f[3]
-			if f[2].size > f[3].size
-				effect = 'activating'
-			else
-				effect = 'deactivating'
+		id = 1 # fminer start id is not 0
+		compounds = []
+		#training_dataset.data_entries.each do |c,f|
+		training_dataset.feature_values(feature_uri).each do |c,f|
+			smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
+			compound = feature_dataset.find_or_create_compound(c.to_s)
+			puts "No #{feature_uri} for #{c.to_s}." if f.size == 0
+			f.each do |act|
+				puts act
+				case act.to_s
+				when "true"
+					puts smiles + "\t" + true.to_s
+					compounds[id] = compound
+					@@fminer.AddCompound(smiles,id)
+					@@fminer.AddActivity(true, id)
+				when "false"
+					puts smiles + "\t" + false.to_s
+					compounds[id] = compound
+					@@fminer.AddCompound(smiles,id)
+					@@fminer.AddActivity(false, id)
+				end
 			end
-			eff = Redland::Uri.new(url_for('/fminer/effect', :full))
-			feature_data.add(feature, eff, Redland::Literal.new(effect))
-			#puts "#{f[0]}\t#{f[1]}\t#{effect}"
-			ids.each do |id|
-				feature_data.add(compound_list[id], Redland::Uri.new(url_for('/fminer',:full)), feature)
+			id += 1
+		end
+
+		@@fminer.SetConsoleOut(false)
+		@@fminer.SetChisqSig(0.95)
+		values = {}
+		# run @@fminer
+		(0 .. @@fminer.GetNoRootNodes()-1).each do |j|
+			results = @@fminer.MineRoot(j)
+			results.each do |result|
+				f = YAML.load(result)[0]
+				smarts = f[0]
+				p_value = f[1]
+				ids = f[2] + f[3]
+				if f[2].size > f[3].size
+					effect = 'activating'
+				else
+					effect = 'deactivating'
+				end
+				#tuple = feature_dataset.find_or_create_tuple( :smarts => smarts, :p_value => p_value, :effect => effect )
+				tuple = feature_dataset.create_tuple( :smarts => smarts, :p_value => p_value, :effect => effect )
+				#puts "#{f[0]}\t#{f[1]}\t#{effect}"
+				ids.each do |id|
+					feature_dataset.add_data_entry compounds[id], bbrc_feature, tuple
+				end
 			end
 		end
-	end
 
-	@@fminer.Reset
-
-	OpenTox::Dataset.create(feature_data.to_string).uri
+		@@fminer.Reset
+		
+		feature_dataset.save
+	#end
+	#task.uri
 
 end
