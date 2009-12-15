@@ -21,16 +21,16 @@ Supported MIME formats (http://chemical-mime.sourceforge.net/):
 Examples:
 
 Get the OWL-DL representation of fminer 
-	curl http://webservices.in-silico.ch/algorithm/fminer
+	curl http://webservices.in-silico.ch/test/algorithm/fminer
 
 Get the OWL-DL representation of lazar 
-	curl http://webservices.in-silico.ch/algorithm/lazar
+	curl http://webservices.in-silico.ch/test/algorithm/lazar
 
 Create fminer features
-	curl -X POST -d dataset_uri={datset_uri} -d feature_uri={feature_uri}	http://webservices.in-silico.ch/fminer
+	curl -X POST -d dataset_uri={datset_uri} -d feature_uri={feature_uri}	http://webservices.in-silico.ch/test/fminer
 
 Create lazar model
-	curl -X POST -d dataset_uri={datset_uri} -d feature_uri={feature_uri}	-d feature_generation_uri=http://webservices.in-silico.ch/fminer http://webservices.in-silico.ch/lazar
+	curl -X POST -d dataset_uri={datset_uri} -d feature_uri={feature_uri}	-d feature_generation_uri=http://webservices.in-silico.ch/fminer http://webservices.in-silico.ch/test/lazar
 
 More documentation: Source code (application.rb, fminer.rb, lazar.rb)
 
