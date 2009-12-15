@@ -3,11 +3,35 @@ OpenTox Algorithm
 
 * An OpenTox REST Webservice (http://www.opentox.org)
 * Implements the OpenTox algorithm API for
-	- substructure matching
 	- fminer
-	- similarity
 	- lazar
 
-Documentation: Source code (application.rb, smarts.rb, similarity.rb, fminer.rb, lazar.rb)
+REST operations:
+
+Get a list of all algorithms									GET		/																													URIs of algorithms				200
+Get a representation of the fminer algorithm 	GET 	/fminer																										fminer representation			200,404
+Get a representation of the lazar algorithm 	GET 	/lazar																										lazar representation			200,404
+Create fminer features 												POST 	/fminer	dataset_uri, feature_uri													URI for feature dataset		200,404,500
+Create lazar model 														POST 	/lazar	dataset_uri, feature_uri, feature_generation_uri	URI for lazar model				200,404,500
+
+Supported MIME formats (http://chemical-mime.sourceforge.net/):
+
+  * application/rdf+xml (default): read/write OWL-DL
+
+Examples:
+
+Get the OWL-DL representation of fminer 
+	curl http://webservices.in-silico.ch/algorithm/fminer
+
+Get the OWL-DL representation of lazar 
+	curl http://webservices.in-silico.ch/algorithm/lazar
+
+Create fminer features
+	curl -X POST -d dataset_uri={datset_uri} -d feature_uri={feature_uri}	http://webservices.in-silico.ch/fminer
+
+Create lazar model
+	curl -X POST -d dataset_uri={datset_uri} -d feature_uri={feature_uri}	-d feature_generation_uri=http://webservices.in-silico.ch/fminer http://webservices.in-silico.ch/lazar
+
+More documentation: Source code (application.rb, fminer.rb, lazar.rb)
 
 Copyright (c) 2009 Christoph Helma. See LICENSE for details.
