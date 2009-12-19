@@ -15,6 +15,7 @@ post '/fminer/?' do
 		#task.start
 
 		feature_uri = params[:feature_uri] or halt 404, "Please submit a feature_uri parameter."
+		puts params[:dataset_uri]
 		training_dataset = OpenTox::Dataset.find params[:dataset_uri]
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
