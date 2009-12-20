@@ -5,7 +5,7 @@ end
 post '/lazar/?' do # create a model
 
 	halt 404, "Dataset #{params[:dataset_uri]} not found" unless  training_activities = OpenTox::Dataset.find(params[:dataset_uri])
-	halt 404, "No feature_uri as parameter." unless params[:feature_uri]
+	halt 404, "No feature_uri parameter." unless params[:feature_uri]
 
 
 	# create features
