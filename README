@@ -8,14 +8,16 @@ OpenTox Algorithm
 
 REST operations:
 
-Get a list of all algorithms                  GET   /       -                       URIs of algorithms        200
-Get a representation of the fminer algorithm  GET   /fminer -                       fminer representation     200,404
-Get a representation of the lazar algorithm   GET   /lazar  -                       lazar representation      200,404
-Create fminer features                        POST  /fminer dataset_uri,            URI for feature dataset   200,400,404,500
-                                                            feature_uri,   
-                                                            feature_generation_uri  
-Create lazar model                            POST  /lazar  dataset_uri,            URI for lazar model       200,400,404,500
-                                                            feature_uri 
+Get a list of all algorithms  GET   /       -                       URIs of algorithms        200
+Get a representation of the   GET   /fminer -                       fminer representation     200,404
+fminer algorithm  
+Get a representation of the   GET   /lazar  -                       lazar representation      200,404
+lazar algorithm   
+Create fminer features        POST  /fminer dataset_uri,            URI for feature dataset   200,400,404,500
+                                            feature_uri,   
+                                            feature_generation_uri  
+Create lazar model            POST  /lazar  dataset_uri,            URI for lazar model       200,400,404,500
+                                            feature_uri 
 
 Supported MIME formats (http://chemical-mime.sourceforge.net/):
 
