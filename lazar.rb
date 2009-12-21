@@ -20,7 +20,7 @@ post '/lazar/?' do # create a model
 		fingerprints[compound] = [] unless fingerprints[compound]
 		feats.each do |f|
 			f.each do |feature,value|
-				if feature == 'http://localhost:4002/fminer#BBRC_representative'
+				if feature.match(/BBRC_representative/)
 					fingerprints[compound] << value['smarts']
 					unless features.include? value['smarts']
 						features << value['smarts']
