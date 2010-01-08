@@ -10,28 +10,50 @@ post '/lazar/?' do # create a model
 
 	# create features
 	feature_dataset_uri = OpenTox::Algorithm::Fminer.create_feature_dataset(params)
+  puts "feature dataset uri "+feature_dataset_uri.to_s
+  
 	training_features = OpenTox::Dataset.find(feature_dataset_uri)
 	halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 	features = []
 	p_vals = {}
 	effects = {}
 	fingerprints = {}
+
+  puts "create alg"
+  #bbrcs_found = false
+  #debug = {}
+  
 	training_features.data.each do |compound,feats|
+    
+    #debug[compound] = feats
+    
 		fingerprints[compound] = [] unless fingerprints[compound]
 		feats.each do |f|
 			f.each do |feature,value|
-				if feature == 'http://localhost:4002/fminer#BBRC_representative'
-					fingerprints[compound] << value['smarts']
+        #puts "feature "+feature.to_s
+				if feature.match( /BBRC_representative/ )
+          fingerprints[compound] << value['smarts']
+         # puts "-"
 					unless features.include? value['smarts']
-						features << value['smarts']
-						p_vals[value['smarts']] = value['p_value'].to_f
+            #bbrcs_found = true    
+          	features << value['smarts']
+          #  puts "."
+            #puts "adding model feature: "+value['smarts'].to_s
+            p_vals[value['smarts']] = value['p_value'].to_f
 						effects[value['smarts']] = value['effect']
 					end
 				end
-			end
+		  end
 		end
+    
 	end
-	
+
+  #puts debug.inspect
+
+  raise "no p_values" if p_vals.size==0 
+
+  #raise "no bbrc features found" if bbrcs_found==false
+  
 	model = {
 		:activity_dataset => params[:dataset_uri],
 		:feature_dataset => feature_dataset_uri.to_s,
