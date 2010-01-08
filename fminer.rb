@@ -16,8 +16,17 @@ post '/fminer/?' do
 
 		feature_uri = params[:feature_uri]
 		halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
-		training_dataset = OpenTox::Dataset.find params[:dataset_uri] 
-		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
+    
+    puts "looking for training datset "+params[:dataset_uri]
+    
+		training_dataset = OpenTox::Dataset.find params[:dataset_uri]
+    
+    #puts "fminer applied to dataset:"
+    #puts training_dataset.data.to_yaml
+    
+    puts "looking for training datset "+params[:dataset_uri]+" done"
+    
+		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil?
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
 		feature_dataset.title = title
@@ -38,16 +47,20 @@ post '/fminer/?' do
 					#puts smiles + "\t" + true.to_s
 					compounds[id] = compound
 					@@fminer.AddCompound(smiles,id)
-					@@fminer.AddActivity(true, id)
+					@@fminer.AddActivity(1, id)
+          #@@fminer.AddActivity(true, id)
 				when "false"
 					#puts smiles + "\t" + false.to_s
 					compounds[id] = compound
 					@@fminer.AddCompound(smiles,id)
-					@@fminer.AddActivity(false, id)
+					@@fminer.AddActivity(0, id)
+          #@@fminer.AddActivity(false, id)
 				end
 			end
 			id += 1
 		end
+
+    raise "no compounds" if compounds.size==0
 
 		@@fminer.SetConsoleOut(false)
 		@@fminer.SetChisqSig(0.95)
@@ -75,7 +88,14 @@ post '/fminer/?' do
 
 		@@fminer.Reset
 		
-		feature_dataset.save
+    puts "saving now"
+		uri = feature_dataset.save
+    puts "saving done "+uri.to_s
+    
+    #puts "feature dataset: "
+    #puts feature_dataset.data.to_yaml
+    
+    return uri
 	#end
 	#task.uri
 
