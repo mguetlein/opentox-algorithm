@@ -8,16 +8,18 @@ end
 
 post '/fminer/?' do
 
-	#task = OpenTox::Task.create
+	feature_uri = params[:feature_uri]
+	halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
+	training_dataset = OpenTox::Dataset.find params[:dataset_uri] 
+	halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
 
-	#Spork.spork do
+	task = OpenTox::Task.create
 
-		#task.start
+	#pid = fork do
+	Spork.spork(:logger => LOGGER) do
 
-		feature_uri = params[:feature_uri]
-		halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
-		training_dataset = OpenTox::Dataset.find params[:dataset_uri] 
-		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
+		task.start
+
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
 		feature_dataset.title = title
@@ -27,6 +29,7 @@ post '/fminer/?' do
 
 		id = 1 # fminer start id is not 0
 		compounds = []
+		@@fminer.Reset
 		training_dataset.feature_values(feature_uri).each do |c,f|
 			smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
 			compound = feature_dataset.find_or_create_compound(c.to_s)
@@ -73,10 +76,10 @@ post '/fminer/?' do
 			end
 		end
 
-		@@fminer.Reset
-		
-		feature_dataset.save
-	#end
-	#task.uri
+		uri = feature_dataset.save # does not return
+		task.completed(uri)
+	end
+	#Process.detach(pid)
+	task.uri
 
 end
