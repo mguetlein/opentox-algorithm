@@ -15,10 +15,10 @@ post '/fminer/?' do
 
 	task = OpenTox::Task.create
 
-	#pid = fork do
 	Spork.spork(:logger => LOGGER) do
 
-		task.start
+		LOGGER.info "Task #{task.uri} created"
+		task.started
 
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
@@ -77,9 +77,9 @@ post '/fminer/?' do
 		end
 
 		uri = feature_dataset.save # does not return
+		LOGGER.info "Dataset #{uri} created."
 		task.completed(uri)
 	end
-	#Process.detach(pid)
 	task.uri
 
 end

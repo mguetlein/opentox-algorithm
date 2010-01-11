@@ -12,7 +12,7 @@ post '/lazar/?' do # create a model
 
 	Spork.spork(:logger => LOGGER) do
 
-		task.start
+		task.started
 
 		# create features
 		fminer_task_uri = OpenTox::Algorithm::Fminer.create_feature_dataset(params)
