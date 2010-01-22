@@ -17,7 +17,7 @@ post '/fminer/?' do
 
 	Spork.spork(:logger => LOGGER) do
 
-		LOGGER.info "Task #{task.uri} created"
+		LOGGER.debug "Task #{task.uri} created"
 		task.started
 
 		feature_dataset = OpenTox::Dataset.new
@@ -31,19 +31,21 @@ post '/fminer/?' do
 		compounds = []
 		@@fminer.Reset
 		training_dataset.feature_values(feature_uri).each do |c,f|
+			LOGGER.debug c.to_s
 			smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
+			LOGGER.debug smiles.to_s
 			compound = feature_dataset.find_or_create_compound(c.to_s)
-			puts "No #{feature_uri} for #{c.to_s}." if f.size == 0
+			LOGGER.debug "No #{feature_uri} for #{c.to_s}." if f.size == 0
 			f.each do |act|
-				#puts act
+				LOGGER.debug act.to_s
 				case act.to_s
-				when "true"
-					#puts smiles + "\t" + true.to_s
+				when /^true|active|1$/
+					LOGGER.debug smiles + "\t" + true.to_s
 					compounds[id] = compound
 					@@fminer.AddCompound(smiles,id)
 					@@fminer.AddActivity(true, id)
-				when "false"
-					#puts smiles + "\t" + false.to_s
+				when /^false|inactive|0$/
+					LOGGER.debug smiles + "\t" + false.to_s
 					compounds[id] = compound
 					@@fminer.AddCompound(smiles,id)
 					@@fminer.AddActivity(false, id)
@@ -69,7 +71,7 @@ post '/fminer/?' do
 					effect = 'deactivating'
 				end
 				tuple = feature_dataset.create_tuple(bbrc_feature,{ url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value, url_for('/fminer#effect',:full) => effect })
-				#puts "#{f[0]}\t#{f[1]}\t#{effect}"
+				LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
 				ids.each do |id|
 					feature_dataset.add_tuple compounds[id], tuple
 				end
@@ -77,7 +79,7 @@ post '/fminer/?' do
 		end
 
 		uri = feature_dataset.save # does not return
-		LOGGER.info "Dataset #{uri} created."
+		LOGGER.debug "Dataset #{uri} created."
 		task.completed(uri)
 	end
 	task.uri

@@ -1,17 +1,14 @@
 require 'rubygems'
 require 'libfminer/fminer' # has to be included before openbabel, otherwise we have strange SWIG overloading problems
-gem 'opentox-ruby-api-wrapper', '~>1.2'
+gem 'opentox-ruby-api-wrapper', '= 1.2.5'
 require 'opentox-ruby-api-wrapper'
-require 'logger'
 
 #require 'smarts.rb'
 #require 'similarity.rb'
 require 'fminer.rb'
 require 'lazar.rb'
 
-set :lock, true
-#set :default_content, :owl
-LOGGER = Logger.new(STDERR)
+#set :lock, true
 
 get '/?' do
 	[ url_for('/lazar', :full), url_for('/fminer', :full) ].join("\n")
