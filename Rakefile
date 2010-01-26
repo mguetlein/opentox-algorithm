@@ -10,7 +10,8 @@ namespace "fminer" do
 		Dir.chdir('libfminer')
 		puts `git checkout master`
 		puts `git pull`
-		puts `make ruby`
+		puts `./configure`
+        puts `make ruby`
 	end
 
 	desc "Update gems and fminer"
@@ -19,6 +20,7 @@ namespace "fminer" do
 		Dir.chdir('libfminer')
 		puts `git checkout master`
 		puts `git pull`
+		puts `./configure`
 		puts `make ruby`
 	end
 end
