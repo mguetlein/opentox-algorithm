@@ -18,7 +18,7 @@ namespace "fminer" do
             exit
         end
         puts `make ruby`
-	end
+	    end
 
 	desc "Update gems and fminer"
 	task :update do
@@ -34,8 +34,8 @@ namespace "fminer" do
             exit
         end
         puts `make ruby`
+        end
 end
-
 desc "Run tests"
 task :test do
 	load 'test/test.rb'
