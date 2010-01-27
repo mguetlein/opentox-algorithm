@@ -11,6 +11,12 @@ namespace "fminer" do
 		puts `git checkout master`
 		puts `git pull`
 		puts `./configure`
+        if $? == 0
+            puts `echo "Fminer successfully configured."`
+        else
+            puts `echo "Fminer configuration failed!"`
+            exit
+        end
         puts `make ruby`
 	end
 
@@ -21,8 +27,13 @@ namespace "fminer" do
 		puts `git checkout master`
 		puts `git pull`
 		puts `./configure`
-		puts `make ruby`
-	end
+        if $? == 0
+            puts `echo "Fminer successfully configured."`
+        else
+            puts `echo "Fminer configuration failed!"`
+            exit
+        end
+        puts `make ruby`
 end
 
 desc "Run tests"
