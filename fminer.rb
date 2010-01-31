@@ -1,6 +1,9 @@
 ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Fminer::Fminer.new
+@@fminer.SetAromatic(true)
+#@@fminer.SetConsoleOut(false)
+#@@fminer.SetChisqSig(0.95)
 
 get '/fminer/?' do
 	OpenTox::Algorithm::Fminer.new.rdf
@@ -8,17 +11,24 @@ end
 
 post '/fminer/?' do
 
+	LOGGER.debug "Dataset: " + params[:dataset_uri]
+	LOGGER.debug "Endpoint: " + params[:feature_uri]
 	feature_uri = params[:feature_uri]
 	halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
-	training_dataset = OpenTox::Dataset.find params[:dataset_uri] 
-	halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
+	begin
+		LOGGER.debug "Retrieving #{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
+		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
+	rescue
+		LOGGER.error "Dataset #{params[:dataset_uri]} not found" 
+		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
+	end
 
 	task = OpenTox::Task.create
 
-	Spork.spork(:logger => LOGGER) do
+	pid = Spork.spork(:logger => LOGGER) do
 
-		LOGGER.debug "Task #{task.uri} created"
 		task.started
+		LOGGER.debug "Fminer task #{task.uri} started"
 
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
@@ -30,34 +40,39 @@ post '/fminer/?' do
 		id = 1 # fminer start id is not 0
 		compounds = []
 		@@fminer.Reset
-		training_dataset.feature_values(feature_uri).each do |c,f|
-			LOGGER.debug c.to_s
+		LOGGER.debug "Fminer: initialising ..."
+		training_dataset.data.each do |c,features|
 			smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
-			LOGGER.debug smiles.to_s
-			compound = feature_dataset.find_or_create_compound(c.to_s)
-			LOGGER.debug "No #{feature_uri} for #{c.to_s}." if f.size == 0
-			f.each do |act|
-				LOGGER.debug act.to_s
-				case act.to_s
-				when /^true|active|1$/
-					LOGGER.debug smiles + "\t" + true.to_s
-					compounds[id] = compound
-					@@fminer.AddCompound(smiles,id)
-					@@fminer.AddActivity(true, id)
-				when /^false|inactive|0$/
-					LOGGER.debug smiles + "\t" + false.to_s
-					compounds[id] = compound
-					@@fminer.AddCompound(smiles,id)
-					@@fminer.AddActivity(false, id)
+			if smiles == '' or smiles.nil?
+				LOGGER.warn "Cannot find smiles for #{c.to_s}."
+			else
+				compound = feature_dataset.find_or_create_compound(c.to_s)
+				LOGGER.warn "No #{feature_uri} for #{c.to_s}." if features[feature_uri].size == 0
+				features[feature_uri].each do |act|
+					if act.nil? 
+						LOGGER.warn "No #{feature_uri} activiity for #{c.to_s}."
+					else
+						case act.to_s
+						when "true"
+							LOGGER.debug '"' + smiles +'"' +  "\t" + true.to_s
+							activity = 1
+						when "false"
+							LOGGER.debug '"' + smiles +'"' +  "\t" + false.to_s
+							activity = 0
+						end
+						compounds[id] = compound
+						@@fminer.AddCompound(smiles,id)
+						@@fminer.AddActivity(activity, id)
+					end
 				end
+				id += 1
 			end
-			id += 1
 		end
+		LOGGER.debug "Fminer: initialised with #{id} compounds"
 
-		@@fminer.SetConsoleOut(false)
-		@@fminer.SetChisqSig(0.95)
 		values = {}
 		# run @@fminer
+		LOGGER.debug "Fminer: mining ..."
 		(0 .. @@fminer.GetNoRootNodes()-1).each do |j|
 			results = @@fminer.MineRoot(j)
 			results.each do |result|
@@ -70,7 +85,7 @@ post '/fminer/?' do
 				else
 					effect = 'deactivating'
 				end
-				tuple = feature_dataset.create_tuple(bbrc_feature,{ url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value, url_for('/fminer#effect',:full) => effect })
+				tuple = feature_dataset.create_tuple(bbrc_feature,{ url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value.to_f, url_for('/fminer#effect',:full) => effect })
 				LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
 				ids.each do |id|
 					feature_dataset.add_tuple compounds[id], tuple
@@ -78,10 +93,12 @@ post '/fminer/?' do
 			end
 		end
 
-		uri = feature_dataset.save # does not return
-		LOGGER.debug "Dataset #{uri} created."
+		uri = feature_dataset.save 
+		LOGGER.debug "Fminer finished, dataset #{uri} created."
 		task.completed(uri)
 	end
+	task.pid = pid
+	LOGGER.debug "Task PID: " + pid.to_s
 	task.uri
 
 end

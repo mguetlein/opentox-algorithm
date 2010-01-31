@@ -8,7 +8,11 @@ require 'opentox-ruby-api-wrapper'
 require 'fminer.rb'
 require 'lazar.rb'
 
-#set :lock, true
+set :lock, true
+
+before do
+	LOGGER.debug "Request: " + request.path
+end
 
 get '/?' do
 	[ url_for('/lazar', :full), url_for('/fminer', :full) ].join("\n")
