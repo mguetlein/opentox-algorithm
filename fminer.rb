@@ -42,7 +42,12 @@ post '/fminer/?' do
 		@@fminer.Reset
 		LOGGER.debug "Fminer: initialising ..."
 		training_dataset.data.each do |c,features|
-			smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
+			begin
+				smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
+			rescue
+				LOGGER.warn "No resource for #{c.to_s}"
+				next
+			end
 			if smiles == '' or smiles.nil?
 				LOGGER.warn "Cannot find smiles for #{c.to_s}."
 			else
@@ -54,15 +59,19 @@ post '/fminer/?' do
 					else
 						case act.to_s
 						when "true"
-							LOGGER.debug '"' + smiles +'"' +  "\t" + true.to_s
+							LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + true.to_s
 							activity = 1
 						when "false"
-							LOGGER.debug '"' + smiles +'"' +  "\t" + false.to_s
+							LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + false.to_s
 							activity = 0
 						end
 						compounds[id] = compound
-						@@fminer.AddCompound(smiles,id)
-						@@fminer.AddActivity(activity, id)
+						begin
+							@@fminer.AddCompound(smiles,id)
+							@@fminer.AddActivity(activity, id)
+						rescue
+							LOGGER.warn "Could not add " + smiles + "\t" + activity + " to fminer"
+						end
 					end
 				end
 				id += 1

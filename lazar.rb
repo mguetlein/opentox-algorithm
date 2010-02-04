@@ -30,7 +30,13 @@ post '/lazar/?' do # create a model
 		fminer_task_uri = OpenTox::Algorithm::Fminer.create_feature_dataset(params)
 		LOGGER.debug "Fminer started"
 		fminer_task = OpenTox::Task.find(fminer_task_uri)
+		fminer_task.parent = task
 		fminer_task.wait_for_completion
+		if fminer_task.failed?
+			LOGGER.error "Fminer failed"
+			task.failed
+			break
+		end
 		LOGGER.debug "Fminer finished"
 		feature_dataset_uri = fminer_task.resource
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
@@ -89,6 +95,7 @@ post '/lazar/?' do # create a model
 
 		task.completed(model_uri)
 	end
+	LOGGER.debug "PID: " + pid.to_s
 	task.pid = pid
 	task.uri
 
