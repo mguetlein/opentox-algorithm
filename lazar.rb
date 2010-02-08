@@ -14,11 +14,12 @@ post '/lazar/?' do # create a model
 		LOGGER.error "Dataset #{dataset_uri} not found" 
 		halt 404, "Dataset #{dataset_uri} not found" 
 	end
-	#halt 404, "Dataset #{params[:dataset_uri]} not found" unless  training_activities = OpenTox::Dataset.find(params[:dataset_uri])
 	halt 404, "No feature_uri parameter." unless params[:feature_uri]
 	halt 404, "No feature_generation_uri parameter." unless params[:feature_generation_uri]
 
 	task = OpenTox::Task.create
+#	model = OpenTox::Model::Lazar.create(task)
+#	LOGGER.debug model.inspect
 
 	pid = Spork.spork(:logger => LOGGER) do
 
@@ -45,7 +46,6 @@ post '/lazar/?' do # create a model
 		p_vals = {}
 		effects = {}
 		fingerprints = {}
-		#LOGGER.debug training_features.data.to_yaml
 		training_features.data.each do |compound,feature|
 			fingerprints[compound] = [] unless fingerprints[compound]
 			feature.each do |uri,fragments|
@@ -61,7 +61,6 @@ post '/lazar/?' do # create a model
 				end
 			end
 		end
-		#LOGGER.debug training_activities.data.to_yaml
 		activities = {}
 		training_activities.data.each do |compound,feature|
 			activities[compound] = [] unless activities[compound]
@@ -76,9 +75,9 @@ post '/lazar/?' do # create a model
 				end
 			end
 		end
-		#LOGGER.debug activities.to_yaml
 		
-		model = {
+		# TODO: add tsk to yaml
+		yaml = {
 			:activity_dataset => params[:dataset_uri],
 			:feature_dataset => feature_dataset_uri.to_s,
 			:endpoint => params[:feature_uri],
@@ -87,16 +86,18 @@ post '/lazar/?' do # create a model
 			:effects => effects,
 			:fingerprints => fingerprints,
 			:activities => activities
-		}
-		LOGGER.debug model.to_yaml
+		}.to_yaml
+		LOGGER.debug yaml
 
-		model_uri = OpenTox::Model::Lazar.create(model.to_yaml)
+		model_uri = OpenTox::Model::Lazar.create(yaml)
+		#model.yaml = yaml
 		LOGGER.info model_uri + " created"
 
 		task.completed(model_uri)
 	end
-	LOGGER.debug "PID: " + pid.to_s
+	LOGGER.debug "Task PID: " + pid.to_s
 	task.pid = pid
 	task.uri
+	#model.uri
 
 end
