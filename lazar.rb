@@ -95,8 +95,9 @@ post '/lazar/?' do # create a model
 
 		task.completed(model_uri)
 	end
-	LOGGER.debug "Task PID: " + pid.to_s
+	LOGGER.debug "Lazar task PID: " + pid.to_s
 	task.pid = pid
+	#status 303
 	task.uri
 	#model.uri
 

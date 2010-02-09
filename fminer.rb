@@ -102,12 +102,15 @@ post '/fminer/?' do
 			end
 		end
 
+		# this takes too long for large datasets
+		LOGGER.debug "Creating dataset with fminer results."
 		uri = feature_dataset.save 
 		LOGGER.debug "Fminer finished, dataset #{uri} created."
 		task.completed(uri)
 	end
 	task.pid = pid
 	LOGGER.debug "Task PID: " + pid.to_s
+	#status 303
 	task.uri
 
 end
