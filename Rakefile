@@ -10,8 +10,15 @@ namespace "fminer" do
 		Dir.chdir('libfminer')
 		puts `git checkout master`
 		puts `git pull`
-		puts `make ruby`
-	end
+		puts `./configure`
+        if $? == 0
+            puts `echo "Fminer successfully configured."`
+        else
+            puts `echo "Fminer configuration failed!"`
+            exit
+        end
+        puts `make ruby`
+	    end
 
 	desc "Update gems and fminer"
 	task :update do
@@ -19,10 +26,16 @@ namespace "fminer" do
 		Dir.chdir('libfminer')
 		puts `git checkout master`
 		puts `git pull`
-		puts `make ruby`
-	end
+		puts `./configure`
+        if $? == 0
+            puts `echo "Fminer successfully configured."`
+        else
+            puts `echo "Fminer configuration failed!"`
+            exit
+        end
+        puts `make ruby`
+        end
 end
-
 desc "Run tests"
 task :test do
 	load 'test/test.rb'
