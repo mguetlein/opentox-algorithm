@@ -24,7 +24,7 @@ post '/lazar/?' do # create a model
 	pid = Spork.spork(:logger => LOGGER) do
 
 		task.started
-		LOGGER.debug "Lazar task #{task.uri} started"
+		LOGGER.debug "Lazar task #{task.uri} started #{Time.now}"
 
 		# create features
 		LOGGER.debug "Starting fminer"
@@ -38,7 +38,7 @@ post '/lazar/?' do # create a model
 			task.failed
 			break
 		end
-		LOGGER.debug "Fminer finished"
+		LOGGER.debug "Fminer finished #{Time.now}"
 		feature_dataset_uri = fminer_task.resource
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
@@ -91,7 +91,7 @@ post '/lazar/?' do # create a model
 
 		model_uri = OpenTox::Model::Lazar.create(yaml)
 		#model.yaml = yaml
-		LOGGER.info model_uri + " created"
+		LOGGER.info model_uri + " created #{Time.now}"
 
 		task.completed(model_uri)
 	end
