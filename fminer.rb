@@ -1,6 +1,9 @@
 ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Fminer::Fminer.new
+@@fminer.SetAromatic(true)
+#@@fminer.SetConsoleOut(false)
+#@@fminer.SetChisqSig(0.95)
 
 get '/fminer/?' do
 	OpenTox::Algorithm::Fminer.new.rdf
@@ -8,25 +11,25 @@ end
 
 post '/fminer/?' do
 
-	#task = OpenTox::Task.create
+	LOGGER.debug "Dataset: " + params[:dataset_uri]
+	LOGGER.debug "Endpoint: " + params[:feature_uri]
+	feature_uri = params[:feature_uri]
+	halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
+	begin
+		LOGGER.debug "Retrieving #{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
+		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
+	rescue
+		LOGGER.error "Dataset #{params[:dataset_uri]} not found" 
+		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
+	end
 
-	#Spork.spork do
+	task = OpenTox::Task.create
 
-		#task.start
+	pid = Spork.spork(:logger => LOGGER) do
 
-		feature_uri = params[:feature_uri]
-		halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
-    
-    puts "looking for training datset "+params[:dataset_uri]
-    
-		training_dataset = OpenTox::Dataset.find params[:dataset_uri]
-    
-    #puts "fminer applied to dataset:"
-    #puts training_dataset.data.to_yaml
-    
-    puts "looking for training datset "+params[:dataset_uri]+" done"
-    
-		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil?
+		task.started
+		LOGGER.debug "Fminer task #{task.uri} started"
+
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
 		feature_dataset.title = title
@@ -36,36 +39,52 @@ post '/fminer/?' do
 
 		id = 1 # fminer start id is not 0
 		compounds = []
-		training_dataset.feature_values(feature_uri).each do |c,f|
-			smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
-			compound = feature_dataset.find_or_create_compound(c.to_s)
-			puts "No #{feature_uri} for #{c.to_s}." if f.size == 0
-			f.each do |act|
-				#puts act
-				case act.to_s
-				when "true"
-					#puts smiles + "\t" + true.to_s
-					compounds[id] = compound
-					@@fminer.AddCompound(smiles,id)
-					@@fminer.AddActivity(1, id)
-          #@@fminer.AddActivity(true, id)
-				when "false"
-					#puts smiles + "\t" + false.to_s
-					compounds[id] = compound
-					@@fminer.AddCompound(smiles,id)
-					@@fminer.AddActivity(0, id)
-          #@@fminer.AddActivity(false, id)
-				end
+
+		@@fminer.Reset
+		LOGGER.debug "Fminer: initialising ..."
+		training_dataset.data.each do |c,features|
+			begin
+				smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
+			rescue
+				LOGGER.warn "No resource for #{c.to_s}"
+				next
 			end
-			id += 1
+			if smiles == '' or smiles.nil?
+				LOGGER.warn "Cannot find smiles for #{c.to_s}."
+			else
+				compound = feature_dataset.find_or_create_compound(c.to_s)
+				LOGGER.warn "No #{feature_uri} for #{c.to_s}." if features[feature_uri].size == 0
+				features[feature_uri].each do |act|
+					if act.nil? 
+						LOGGER.warn "No #{feature_uri} activiity for #{c.to_s}."
+					else
+						case act.to_s
+						when "true"
+							LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + true.to_s
+							activity = 1
+						when "false"
+							LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + false.to_s
+							activity = 0
+						end
+						compounds[id] = compound
+						begin
+							@@fminer.AddCompound(smiles,id)
+							@@fminer.AddActivity(activity, id)
+						rescue
+							LOGGER.warn "Could not add " + smiles + "\t" + activity + " to fminer"
+						end
+					end
+				end
+				id += 1
+			end
 		end
+		LOGGER.debug "Fminer: initialised with #{id} compounds"
 
     raise "no compounds" if compounds.size==0
 
-		@@fminer.SetConsoleOut(false)
-		@@fminer.SetChisqSig(0.95)
 		values = {}
 		# run @@fminer
+		LOGGER.debug "Fminer: mining ..."
 		(0 .. @@fminer.GetNoRootNodes()-1).each do |j|
 			results = @@fminer.MineRoot(j)
 			results.each do |result|
@@ -78,25 +97,23 @@ post '/fminer/?' do
 				else
 					effect = 'deactivating'
 				end
-				tuple = feature_dataset.create_tuple(bbrc_feature,{ url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value, url_for('/fminer#effect',:full) => effect })
-				#puts "#{f[0]}\t#{f[1]}\t#{effect}"
+				tuple = feature_dataset.create_tuple(bbrc_feature,{ url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value.to_f, url_for('/fminer#effect',:full) => effect })
+				LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
 				ids.each do |id|
 					feature_dataset.add_tuple compounds[id], tuple
 				end
 			end
 		end
 
-		@@fminer.Reset
-		
-    puts "saving now"
-		uri = feature_dataset.save
-    puts "saving done "+uri.to_s
-    
-    #puts "feature dataset: "
-    #puts feature_dataset.data.to_yaml
-    
-    return uri
-	#end
-	#task.uri
+		# this takes too long for large datasets
+		LOGGER.debug "Creating dataset with fminer results."
+		uri = feature_dataset.save 
+		LOGGER.debug "Fminer finished, dataset #{uri} created."
+		task.completed(uri)
+	end
+	task.pid = pid
+	LOGGER.debug "Task PID: " + pid.to_s
+	#status 303
+	task.uri
 
 end
