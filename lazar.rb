@@ -76,7 +76,6 @@ post '/lazar/?' do # create a model
 			end
 		end
 		
-		# TODO: add tsk to yaml
 		yaml = {
 			:activity_dataset => params[:dataset_uri],
 			:feature_dataset => feature_dataset_uri.to_s,
@@ -90,7 +89,6 @@ post '/lazar/?' do # create a model
 		LOGGER.debug yaml
 
 		model_uri = OpenTox::Model::Lazar.create(yaml)
-		#model.yaml = yaml
 		LOGGER.info model_uri + " created #{Time.now}"
 
 		task.completed(model_uri)
