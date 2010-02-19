@@ -1,4 +1,5 @@
 get '/lazar/?' do
+	response['Content-Type'] = 'application/rdf+xml'
 	OpenTox::Algorithm::Lazar.new.rdf
 end
 
@@ -96,6 +97,7 @@ post '/lazar/?' do # create a model
 	LOGGER.debug "Lazar task PID: " + pid.to_s
 	task.pid = pid
 	#status 303
+	response['Content-Type'] = 'text/uri-list'
 	task.uri
 	#model.uri
 

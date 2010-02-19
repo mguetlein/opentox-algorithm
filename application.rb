@@ -15,5 +15,6 @@ before do
 end
 
 get '/?' do
+	response['Content-Type'] = 'text/uri-list'
 	[ url_for('/lazar', :full), url_for('/fminer', :full) ].join("\n")
 end
