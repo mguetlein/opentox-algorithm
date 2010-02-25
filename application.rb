@@ -5,6 +5,7 @@ require 'opentox-ruby-api-wrapper'
 
 #require 'smarts.rb'
 #require 'similarity.rb'
+require 'openbabel.rb'
 require 'fminer.rb'
 require 'lazar.rb'
 
