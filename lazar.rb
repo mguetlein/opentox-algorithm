@@ -1,4 +1,5 @@
 get '/lazar/?' do
+	response['Content-Type'] = 'application/rdf+xml'
 	OpenTox::Algorithm::Lazar.new.rdf
 end
 
@@ -77,7 +78,6 @@ post '/lazar/?' do # create a model
 			end
 		end
 		
-		# TODO: add tsk to yaml
 		yaml = {
 			:activity_dataset => params[:dataset_uri],
 			:feature_dataset => feature_dataset_uri.to_s,
@@ -91,7 +91,6 @@ post '/lazar/?' do # create a model
 		LOGGER.debug yaml
 
 		model_uri = OpenTox::Model::Lazar.create(yaml)
-		#model.yaml = yaml
 		LOGGER.info model_uri + " created #{Time.now}"
 
 		task.completed(model_uri)
@@ -99,6 +98,7 @@ post '/lazar/?' do # create a model
 	LOGGER.debug "Lazar task PID: " + pid.to_s
 	task.pid = pid
 	#status 303
+	response['Content-Type'] = 'text/uri-list'
 	task.uri
 	#model.uri
 

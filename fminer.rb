@@ -6,6 +6,7 @@ ENV['FMINER_PVALUES'] = 'true'
 #@@fminer.SetChisqSig(0.95)
 
 get '/fminer/?' do
+	response['Content-Type'] = 'application/rdf+xml'
 	OpenTox::Algorithm::Fminer.new.rdf
 end
 
@@ -114,6 +115,7 @@ post '/fminer/?' do
 	task.pid = pid
 	LOGGER.debug "Task PID: " + pid.to_s
 	#status 303
+	response['Content-Type'] = 'text/uri-list'
 	task.uri
 
 end
