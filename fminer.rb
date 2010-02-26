@@ -1,3 +1,5 @@
+LOGGER.progname = File.expand_path(__FILE__)
+
 ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Fminer::Fminer.new

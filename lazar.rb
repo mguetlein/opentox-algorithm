@@ -1,3 +1,5 @@
+LOGGER.progname = File.expand_path(__FILE__)
+
 get '/lazar/?' do
 	response['Content-Type'] = 'application/rdf+xml'
 	OpenTox::Algorithm::Lazar.new.rdf
