@@ -115,6 +115,6 @@ post '/fminer/?' do
 	LOGGER.debug "Task PID: " + pid.to_s
 	#status 303
 	response['Content-Type'] = 'text/uri-list'
-	task.uri
+	task.uri + "\n"
 
 end

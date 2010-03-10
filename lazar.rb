@@ -100,7 +100,7 @@ post '/lazar/?' do # create a model
 	task.pid = pid
 	#status 303
 	response['Content-Type'] = 'text/uri-list'
-	task.uri
+	task.uri + "\n"
 	#model.uri
 
 end
