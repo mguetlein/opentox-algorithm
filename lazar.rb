@@ -1,5 +1,3 @@
-LOGGER.progname = File.expand_path(__FILE__)
-
 get '/lazar/?' do
 	response['Content-Type'] = 'application/rdf+xml'
 	OpenTox::Algorithm::Lazar.new.rdf
@@ -10,7 +8,8 @@ post '/lazar/?' do # create a model
 	LOGGER.debug "Dataset: " + params[:dataset_uri]
 	LOGGER.debug "Endpoint: " + params[:feature_uri]
 	LOGGER.debug "Feature generation: " + params[:feature_generation_uri]
-	dataset_uri = "#{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(params[:feature_uri])}"
+	dataset_uri = "#{params[:dataset_uri]}"#?feature_uris\\[\\]=#{CGI.escape(params[:feature_uri])}"
+	#dataset_uri = "#{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(params[:feature_uri])}"
 	begin
 		training_activities = OpenTox::Dataset.find(dataset_uri)
 	rescue
@@ -21,8 +20,6 @@ post '/lazar/?' do # create a model
 	halt 404, "No feature_generation_uri parameter." unless params[:feature_generation_uri]
 
 	task = OpenTox::Task.create
-#	model = OpenTox::Model::Lazar.create(task)
-#	LOGGER.debug model.inspect
 
 	pid = Spork.spork(:logger => LOGGER) do
 
@@ -32,7 +29,6 @@ post '/lazar/?' do # create a model
 		# create features
 		LOGGER.debug "Starting fminer"
 		fminer_task_uri = OpenTox::Algorithm::Fminer.create_feature_dataset(params)
-		LOGGER.debug "Fminer started"
 		fminer_task = OpenTox::Task.find(fminer_task_uri)
 		fminer_task.parent = task
 		fminer_task.wait_for_completion
@@ -45,53 +41,37 @@ post '/lazar/?' do # create a model
 		feature_dataset_uri = fminer_task.resource
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
-		features = []
-		p_vals = {}
-		effects = {}
-		fingerprints = {}
+		lazar = OpenTox::Model::Lazar.new
+		lazar.dependent_variable = params[:feature_uri]
 		training_features.data.each do |compound,feature|
-			fingerprints[compound] = [] unless fingerprints[compound]
-			feature.each do |uri,fragments|
+			lazar.fingerprints[compound] = [] unless lazar.fingerprints[compound]
+			feature.each do |uri,fragment|
 				if uri.match(/BBRC_representative/)
-					fragments.each do |f|
-						fingerprints[compound] << f['smarts']
-						unless features.include? f['smarts']
-							features << f['smarts']
-							p_vals[f['smarts']] = f['p_value'].to_f
-							effects[f['smarts']] = f['effect']
-						end
-					end
+					smarts = fragment["http://localhost/algorithm/fminer#smarts"]
+					lazar.fingerprints[compound] << smarts
+					lazar.features << smarts
+					lazar.p_values[smarts] = fragment["http://localhost/algorithm/fminer#p_value"]
+					lazar.effects[smarts] = fragment["http://localhost/algorithm/fminer#effect"] 
 				end
 			end
 		end
 		activities = {}
 		training_activities.data.each do |compound,feature|
-			activities[compound] = [] unless activities[compound]
+			lazar.activities[compound] = [] unless lazar.activities[compound]
 			feature[params[:feature_uri]].each do |f|
 				case f.to_s
 				when "true"
-					activities[compound] << true
+					lazar.activities[compound] << true
 				when "false"
-					activities[compound] << false
+					lazar.activities[compound] << false
 				else 
-					activities[compound] << f.to_s
+					lazar.activities[compound] << f.to_s
 				end
 			end
 		end
 		
-		yaml = {
-			:activity_dataset => params[:dataset_uri],
-			:feature_dataset => feature_dataset_uri.to_s,
-			:endpoint => params[:feature_uri],
-			:features => features,
-			:p_values => p_vals,
-			:effects => effects,
-			:fingerprints => fingerprints,
-			:activities => activities
-		}.to_yaml
-		LOGGER.debug yaml
 
-		model_uri = OpenTox::Model::Lazar.create(yaml)
+		model_uri = lazar.save
 		LOGGER.info model_uri + " created #{Time.now}"
 
 		task.completed(model_uri)
