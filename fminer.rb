@@ -10,10 +10,12 @@ end
 
 post '/fminer/?' do
 
+	halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
+	halt 404, "Please submit a feature_uri." unless params[:feature_uri] and  !params[:feature_uri].nil?
 	LOGGER.debug "Dataset: " + params[:dataset_uri]
 	LOGGER.debug "Endpoint: " + params[:feature_uri]
 	feature_uri = params[:feature_uri]
-	halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
+	#halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
 	begin
 		#LOGGER.debug "Retrieving #{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
 		#training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
