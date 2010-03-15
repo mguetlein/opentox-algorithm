@@ -8,8 +8,7 @@ post '/lazar/?' do # create a model
 	LOGGER.debug "Dataset: " + params[:dataset_uri]
 	LOGGER.debug "Endpoint: " + params[:feature_uri]
 	LOGGER.debug "Feature generation: " + params[:feature_generation_uri]
-	dataset_uri = "#{params[:dataset_uri]}"#?feature_uris\\[\\]=#{CGI.escape(params[:feature_uri])}"
-	#dataset_uri = "#{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(params[:feature_uri])}"
+	dataset_uri = "#{params[:dataset_uri]}"
 	begin
 		training_activities = OpenTox::Dataset.find(dataset_uri)
 	rescue
@@ -43,23 +42,36 @@ post '/lazar/?' do # create a model
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 		lazar = OpenTox::Model::Lazar.new
 		lazar.dependent_variable = params[:feature_uri]
-		training_features.data.each do |compound,feature|
+		halt 404, "More than one descriptor type" unless training_features.features.size == 1
+		bbrc = training_features.features.first
+		training_features.data.each do |compound,features|
 			lazar.fingerprints[compound] = [] unless lazar.fingerprints[compound]
-			feature.each do |uri,fragment|
-				if uri.match(/BBRC_representative/)
-					smarts = fragment["http://localhost/algorithm/fminer#smarts"]
-					lazar.fingerprints[compound] << smarts
-					lazar.features << smarts
-					lazar.p_values[smarts] = fragment["http://localhost/algorithm/fminer#p_value"]
-					lazar.effects[smarts] = fragment["http://localhost/algorithm/fminer#effect"] 
+			features.each do |feature|
+				tuple = feature[bbrc]
+				if tuple
+					smarts =nil; p_value = nil; effect = nil
+					tuple.each do |k,v|
+						case k
+						when /fminer#smarts/
+							smarts = v
+							lazar.features << smarts
+							lazar.fingerprints[compound] << smarts
+						when /fminer#p_value/
+							p_value = v
+						when /fminer#effect/
+							effect = v
+						end
+					end
+					lazar.p_values[smarts] = p_value
+					lazar.effects[smarts] = effect
 				end
 			end
 		end
 		activities = {}
-		training_activities.data.each do |compound,feature|
+		training_activities.data.each do |compound,features|
 			lazar.activities[compound] = [] unless lazar.activities[compound]
-			feature[params[:feature_uri]].each do |f|
-				case f.to_s
+			features.each do |feature|
+				case feature[params[:feature_uri]].to_s
 				when "true"
 					lazar.activities[compound] << true
 				when "false"
@@ -81,6 +93,5 @@ post '/lazar/?' do # create a model
 	#status 303
 	response['Content-Type'] = 'text/uri-list'
 	task.uri + "\n"
-	#model.uri
 
 end

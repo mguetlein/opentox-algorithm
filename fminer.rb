@@ -15,10 +15,7 @@ post '/fminer/?' do
 	LOGGER.debug "Dataset: " + params[:dataset_uri]
 	LOGGER.debug "Endpoint: " + params[:feature_uri]
 	feature_uri = params[:feature_uri]
-	#halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
 	begin
-		#LOGGER.debug "Retrieving #{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
-		#training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
 		LOGGER.debug "Retrieving #{params[:dataset_uri]}"
 		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}"
 	rescue
@@ -39,15 +36,12 @@ post '/fminer/?' do
 		feature_dataset.source = url_for('/fminer',:full)
 		bbrc_uri = url_for("/fminer#BBRC_representative",:full)
 		feature_dataset.features << bbrc_uri
-		#bbrc_feature = feature_dataset.find_or_create_feature bbrc_uri
 
 		id = 1 # fminer start id is not 0
 		compounds = []
 		@@fminer.Reset
 		LOGGER.debug "Fminer: initialising ..."
 		training_dataset.data.each do |c,features|
-			LOGGER.debug c
-			LOGGER.debug features
 			begin
 				smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
 			rescue
@@ -58,28 +52,25 @@ post '/fminer/?' do
 				LOGGER.warn "Cannot find smiles for #{c.to_s}."
 			else
 				feature_dataset.compounds << c.to_s
-				if !features[feature_uri] or features[feature_uri].size == 0
-					LOGGER.warn "No #{feature_uri} for #{c.to_s}."
-				else
-					features[feature_uri].each do |act|
-						if act.nil? 
-							LOGGER.warn "No #{feature_uri} activiity for #{c.to_s}."
-						else
-							case act.to_s
-							when "true"
-								LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + true.to_s
-								activity = 1
-							when "false"
-								LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + false.to_s
-								activity = 0
-							end
-							compounds[id] = c.to_s
-							begin
-								@@fminer.AddCompound(smiles,id)
-								@@fminer.AddActivity(activity, id)
-							rescue
-								LOGGER.warn "Could not add " + smiles + "\t" + activity + " to fminer"
-							end
+				features.each do |feature|
+					act = feature[feature_uri]
+					if act.nil? 
+						LOGGER.warn "No #{feature_uri} activiity for #{c.to_s}."
+					else
+						case act.to_s
+						when "true"
+							#LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + true.to_s
+							activity = 1
+						when "false"
+							#LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + false.to_s
+							activity = 0
+						end
+						compounds[id] = c.to_s
+						begin
+							@@fminer.AddCompound(smiles,id)
+							@@fminer.AddActivity(activity, id)
+						rescue
+							LOGGER.warn "Could not add " + smiles + "\t" + activity + " to fminer"
 						end
 					end
 				end
@@ -104,17 +95,15 @@ post '/fminer/?' do
 					effect = 'deactivating'
 				end
 				tuple = { url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value.to_f, url_for('/fminer#effect',:full) => effect }
-				#tuple = feature_dataset.create_tuple(bbrc_feature,{ url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value.to_f, url_for('/fminer#effect',:full) => effect })
-				LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
+				#LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
 				ids.each do |id|
-					feature_dataset.data[compounds[id]] = {} unless feature_dataset.data[compounds[id]]
-					feature_dataset.data[compounds[id]][bbrc_uri] = tuple
+					feature_dataset.data[compounds[id]] = [] unless feature_dataset.data[compounds[id]]
+					feature_dataset.data[compounds[id]] << {bbrc_uri => tuple}
 				end
 			end
 		end
 
 		# this takes too long for large datasets
-		LOGGER.debug "Creating dataset with fminer results."
 		uri = feature_dataset.save 
 		LOGGER.debug "Fminer finished, dataset #{uri} created."
 		task.completed(uri)
