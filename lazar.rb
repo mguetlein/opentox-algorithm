@@ -1,6 +1,17 @@
 get '/lazar/?' do
+	owl = OpenTox::Owl.new 'Algorithm', url_for('/lazar',:full)
+	owl.title = "lazar"
+	owl.source = "http://github.com/helma/opentox-algorithm"
+	owl.parameters = {
+		"Dataset URI" =>
+			{ :scope => "mandatory", :value => "dataset_uri" },
+		"Feature URI for dependent variable" =>
+			{ :scope => "mandatory", :value => "feature_uri" },
+		"Feature generation URI" =>
+			{ :scope => "mandatory", :value => "feature_generation_uri" }
+	}
 	response['Content-Type'] = 'application/rdf+xml'
-	OpenTox::Algorithm::Lazar.new.rdf
+	owl.rdf
 end
 
 post '/lazar/?' do # create a model
@@ -37,7 +48,7 @@ post '/lazar/?' do # create a model
 			break
 		end
 		LOGGER.debug "Fminer finished #{Time.now}"
-		feature_dataset_uri = fminer_task.resource
+		feature_dataset_uri = fminer_task.resource.to_s
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 		lazar = OpenTox::Model::Lazar.new
