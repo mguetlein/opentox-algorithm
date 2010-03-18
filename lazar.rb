@@ -1,17 +1,23 @@
 get '/lazar/?' do
-	owl = OpenTox::Owl.new 'Algorithm', url_for('/lazar',:full)
-	owl.title = "lazar"
-	owl.source = "http://github.com/helma/opentox-algorithm"
-	owl.parameters = {
-		"Dataset URI" =>
-			{ :scope => "mandatory", :value => "dataset_uri" },
-		"Feature URI for dependent variable" =>
-			{ :scope => "mandatory", :value => "feature_uri" },
-		"Feature generation URI" =>
-			{ :scope => "mandatory", :value => "feature_generation_uri" }
-	}
+	if File.exists?('public/lazar.owl')
+		rdf = File.read('public/lazar.owl')
+	else
+		owl = OpenTox::Owl.new 'Algorithm', url_for('/lazar',:full)
+		owl.title = "lazar"
+		owl.source = "http://github.com/helma/opentox-algorithm"
+		owl.parameters = {
+			"Dataset URI" =>
+				{ :scope => "mandatory", :value => "dataset_uri" },
+			"Feature URI for dependent variable" =>
+				{ :scope => "mandatory", :value => "feature_uri" },
+			"Feature generation URI" =>
+				{ :scope => "mandatory", :value => "feature_generation_uri" }
+		}
+		rdf = owl.rdf
+		File.open('public/lazar.owl', 'w') {|f| f.print rdf}
+	end
 	response['Content-Type'] = 'application/rdf+xml'
-	owl.rdf
+	rdf
 end
 
 post '/lazar/?' do # create a model

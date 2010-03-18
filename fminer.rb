@@ -4,15 +4,21 @@ ENV['FMINER_PVALUES'] = 'true'
 @@fminer.SetAromatic(true)
 
 get '/fminer/?' do
-	owl = OpenTox::Owl.new 'Algorithm', url_for('/fminer',:full)
-	owl.title = "fminer"
-	owl.source = "http://github.com/amaunz/libfminer"
-	owl.parameters = {
-		"Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
-		"Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
-	}
+	if File.exists?('public/fminer.owl')
+		rdf = File.read('public/fminer.owl')
+	else
+		owl = OpenTox::Owl.new 'Algorithm', url_for('/fminer',:full)
+		owl.title = "fminer"
+		owl.source = "http://github.com/amaunz/libfminer"
+		owl.parameters = {
+			"Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
+			"Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
+		}
+		rdf = owl.rdf
+		File.open('public/fminer.owl', 'w') {|f| f.print rdf}
+	end
 	response['Content-Type'] = 'application/rdf+xml'
-	owl.rdf
+	rdf
 end
 
 post '/fminer/?' do
