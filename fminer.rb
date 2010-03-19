@@ -35,6 +35,7 @@ post '/fminer/?' do
 		LOGGER.error "Dataset #{params[:dataset_uri]} not found" 
 		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
 	end
+	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}." unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
 	task = OpenTox::Task.create
 
