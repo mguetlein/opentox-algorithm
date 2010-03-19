@@ -34,6 +34,7 @@ post '/lazar/?' do # create a model
 	end
 	halt 404, "No feature_uri parameter." unless params[:feature_uri]
 	halt 404, "No feature_generation_uri parameter." unless params[:feature_generation_uri]
+	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}." unless training_activities.features and training_activities.features.include?(params[:feature_uri])
 
 	task = OpenTox::Task.create
 
