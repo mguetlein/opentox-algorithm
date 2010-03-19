@@ -2,7 +2,7 @@ get '/lazar/?' do
 	if File.exists?('public/lazar.owl')
 		rdf = File.read('public/lazar.owl')
 	else
-		owl = OpenTox::Owl.new 'Algorithm', url_for('/lazar',:full)
+		owl = OpenTox::Owl.create 'Algorithm', url_for('/lazar',:full)
 		owl.title = "lazar"
 		owl.source = "http://github.com/helma/opentox-algorithm"
 		owl.parameters = {
@@ -59,7 +59,7 @@ post '/lazar/?' do # create a model
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 		lazar = OpenTox::Model::Lazar.new
-		lazar.dependent_variable = params[:feature_uri]
+		lazar.dependent_variables = params[:feature_uri]
 		lazar.activity_dataset_uri = dataset_uri
 		lazar.feature_dataset_uri = feature_dataset_uri
 		halt 404, "More than one descriptor type" unless training_features.features.size == 1

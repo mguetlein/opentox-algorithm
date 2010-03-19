@@ -7,7 +7,7 @@ get '/fminer/?' do
 	if File.exists?('public/fminer.owl')
 		rdf = File.read('public/fminer.owl')
 	else
-		owl = OpenTox::Owl.new 'Algorithm', url_for('/fminer',:full)
+		owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
 		owl.title = "fminer"
 		owl.source = "http://github.com/amaunz/libfminer"
 		owl.parameters = {
