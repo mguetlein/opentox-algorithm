@@ -2,27 +2,40 @@ ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Fminer::Fminer.new
 @@fminer.SetAromatic(true)
-#@@fminer.SetConsoleOut(false)
-#@@fminer.SetChisqSig(0.95)
 
 get '/fminer/?' do
+	if File.exists?('public/fminer.owl')
+		rdf = File.read('public/fminer.owl')
+	else
+		owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
+		owl.title = "fminer"
+		owl.source = "http://github.com/amaunz/libfminer"
+		owl.parameters = {
+			"Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
+			"Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
+		}
+		rdf = owl.rdf
+		File.open('public/fminer.owl', 'w') {|f| f.print rdf}
+	end
 	response['Content-Type'] = 'application/rdf+xml'
-	OpenTox::Algorithm::Fminer.new.rdf
+	rdf
 end
 
 post '/fminer/?' do
 
+	halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
+	halt 404, "Please submit a feature_uri." unless params[:feature_uri] and  !params[:feature_uri].nil?
 	LOGGER.debug "Dataset: " + params[:dataset_uri]
 	LOGGER.debug "Endpoint: " + params[:feature_uri]
 	feature_uri = params[:feature_uri]
-	halt 404, "Please submit a feature_uri parameter." if feature_uri.nil?
 	begin
-		LOGGER.debug "Retrieving #{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
-		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}?feature_uris\\[\\]=#{CGI.escape(feature_uri)}"
+		LOGGER.debug "Retrieving #{params[:dataset_uri]}"
+		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}"
 	rescue
 		LOGGER.error "Dataset #{params[:dataset_uri]} not found" 
 		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
 	end
+	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}." unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
 	task = OpenTox::Task.create
 
@@ -36,7 +49,7 @@ post '/fminer/?' do
 		feature_dataset.title = title
 		feature_dataset.source = url_for('/fminer',:full)
 		bbrc_uri = url_for("/fminer#BBRC_representative",:full)
-		bbrc_feature = feature_dataset.find_or_create_feature bbrc_uri
+		feature_dataset.features << bbrc_uri
 
 		id = 1 # fminer start id is not 0
 		compounds = []
@@ -53,21 +66,21 @@ post '/fminer/?' do
 			if smiles == '' or smiles.nil?
 				LOGGER.warn "Cannot find smiles for #{c.to_s}."
 			else
-				compound = feature_dataset.find_or_create_compound(c.to_s)
-				LOGGER.warn "No #{feature_uri} for #{c.to_s}." if features[feature_uri].size == 0
-				features[feature_uri].each do |act|
+				feature_dataset.compounds << c.to_s
+				features.each do |feature|
+					act = feature[feature_uri]
 					if act.nil? 
 						LOGGER.warn "No #{feature_uri} activiity for #{c.to_s}."
 					else
 						case act.to_s
 						when "true"
-							LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + true.to_s
+							#LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + true.to_s
 							activity = 1
 						when "false"
-							LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + false.to_s
+							#LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + false.to_s
 							activity = 0
 						end
-						compounds[id] = compound
+						compounds[id] = c.to_s
 						begin
 							@@fminer.AddCompound(smiles,id)
 							@@fminer.AddActivity(activity, id)
@@ -98,16 +111,16 @@ post '/fminer/?' do
 				else
 					effect = 'deactivating'
 				end
-				tuple = feature_dataset.create_tuple(bbrc_feature,{ url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value.to_f, url_for('/fminer#effect',:full) => effect })
-				LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
+				tuple = { url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value.to_f, url_for('/fminer#effect',:full) => effect }
+				#LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
 				ids.each do |id|
-					feature_dataset.add_tuple compounds[id], tuple
+					feature_dataset.data[compounds[id]] = [] unless feature_dataset.data[compounds[id]]
+					feature_dataset.data[compounds[id]] << {bbrc_uri => tuple}
 				end
 			end
 		end
 
 		# this takes too long for large datasets
-		LOGGER.debug "Creating dataset with fminer results."
 		uri = feature_dataset.save 
 		LOGGER.debug "Fminer finished, dataset #{uri} created."
 		task.completed(uri)
@@ -116,6 +129,6 @@ post '/fminer/?' do
 	LOGGER.debug "Task PID: " + pid.to_s
 	#status 303
 	response['Content-Type'] = 'text/uri-list'
-	task.uri
+	task.uri + "\n"
 
 end
