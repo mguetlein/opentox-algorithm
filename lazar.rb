@@ -9,7 +9,7 @@ get '/lazar/?' do
 			"Dataset URI" =>
 				{ :scope => "mandatory", :value => "dataset_uri" },
 			"Feature URI for dependent variable" =>
-				{ :scope => "mandatory", :value => "feature_uri" },
+				{ :scope => "mandatory", :value => "prediction_feature" },
 			"Feature generation URI" =>
 				{ :scope => "mandatory", :value => "feature_generation_uri" }
 		}
@@ -23,7 +23,7 @@ end
 post '/lazar/?' do # create a model
 
 	LOGGER.debug "Dataset: " + params[:dataset_uri].to_s
-	LOGGER.debug "Endpoint: " + params[:feature_uri].to_s
+	LOGGER.debug "Endpoint: " + params[:prediction_feature].to_s
 	LOGGER.debug "Feature generation: " + params[:feature_generation_uri].to_s
 	dataset_uri = "#{params[:dataset_uri]}"
   
@@ -33,10 +33,10 @@ post '/lazar/?' do # create a model
 		halt 404, "Dataset #{dataset_uri} not found" 
   end
 
-  halt 404, "No feature_uri parameter." unless params[:feature_uri]
+  halt 404, "No prediction_feature parameter." unless params[:prediction_feature]
 	halt 404, "No feature_generation_uri parameter." unless params[:feature_generation_uri]
-	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}. (features: "+
-    training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(params[:feature_uri])
+	halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}. (features: "+
+    training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(params[:prediction_feature])
 
 	task = OpenTox::Task.create
 
@@ -47,6 +47,7 @@ post '/lazar/?' do # create a model
 
 		# create features
 		LOGGER.debug "Starting fminer"
+    params[:feature_uri] = params[:prediction_feature]
 		fminer_task_uri = OpenTox::Algorithm::Fminer.create_feature_dataset(params)
 		fminer_task = OpenTox::Task.find(fminer_task_uri)
 		fminer_task.parent = task
@@ -61,7 +62,7 @@ post '/lazar/?' do # create a model
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 		lazar = OpenTox::Model::Lazar.new
-		lazar.dependent_variables = params[:feature_uri]+"_lazar_classification"
+		lazar.dependent_variables = params[:prediction_feature]+"_lazar_classification"
 		lazar.activity_dataset_uri = dataset_uri
 		lazar.feature_dataset_uri = feature_dataset_uri
 		halt 404, "More than one descriptor type" unless training_features.features.size == 1
@@ -94,7 +95,7 @@ post '/lazar/?' do # create a model
 		training_activities.data.each do |compound,features|
 			lazar.activities[compound] = [] unless lazar.activities[compound]
 			features.each do |feature|
-				case feature[params[:feature_uri]].to_s
+				case feature[params[:prediction_feature]].to_s
 				when "true"
 					lazar.activities[compound] << true
 				when "false"
