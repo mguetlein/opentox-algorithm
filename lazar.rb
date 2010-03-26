@@ -22,19 +22,21 @@ end
 
 post '/lazar/?' do # create a model
 
-	LOGGER.debug "Dataset: " + params[:dataset_uri]
-	LOGGER.debug "Endpoint: " + params[:feature_uri]
-	LOGGER.debug "Feature generation: " + params[:feature_generation_uri]
+	LOGGER.debug "Dataset: " + params[:dataset_uri].to_s
+	LOGGER.debug "Endpoint: " + params[:feature_uri].to_s
+	LOGGER.debug "Feature generation: " + params[:feature_generation_uri].to_s
 	dataset_uri = "#{params[:dataset_uri]}"
+  
 	begin
 		training_activities = OpenTox::Dataset.find(dataset_uri)
 	rescue
-		LOGGER.error "Dataset #{dataset_uri} not found" 
 		halt 404, "Dataset #{dataset_uri} not found" 
-	end
-	halt 404, "No feature_uri parameter." unless params[:feature_uri]
+  end
+
+  halt 404, "No feature_uri parameter." unless params[:feature_uri]
 	halt 404, "No feature_generation_uri parameter." unless params[:feature_generation_uri]
-	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}." unless training_activities.features and training_activities.features.include?(params[:feature_uri])
+	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}. (features: "+
+    training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(params[:feature_uri])
 
 	task = OpenTox::Task.create
 
