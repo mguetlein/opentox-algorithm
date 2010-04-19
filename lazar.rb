@@ -38,12 +38,8 @@ post '/lazar/?' do # create a model
 	halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}. (features: "+
     training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(params[:prediction_feature])
 
-	task = OpenTox::Task.create
-
-	pid = Spork.spork(:logger => LOGGER) do
-
-		task.started
-		LOGGER.debug "Lazar task #{task.uri} started #{Time.now}"
+  response['Content-Type'] = 'text/uri-list' 
+  OpenTox::Task.as_task do |task|
 
 		# create features
 		LOGGER.debug "Starting fminer"
@@ -52,11 +48,8 @@ post '/lazar/?' do # create a model
 		fminer_task = OpenTox::Task.find(fminer_task_uri)
 		fminer_task.parent = task
 		fminer_task.wait_for_completion
-		if fminer_task.failed?
-			LOGGER.error "Fminer failed"
-			task.failed
-			break
-		end
+		raise "fminer failed" if fminer_task.failed?
+    
 		LOGGER.debug "Fminer finished #{Time.now}"
 		feature_dataset_uri = fminer_task.resource.to_s
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
@@ -108,12 +101,7 @@ post '/lazar/?' do # create a model
 		
 		model_uri = lazar.save
 		LOGGER.info model_uri + " created #{Time.now}"
-		task.completed(model_uri)
+    model_uri
 	end
-	LOGGER.debug "Lazar task PID: " + pid.to_s
-	task.pid = pid
-	#status 303
-	response['Content-Type'] = 'text/uri-list'
-	task.uri + "\n"
 
 end
