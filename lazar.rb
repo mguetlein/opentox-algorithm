@@ -46,7 +46,7 @@ post '/lazar/?' do # create a model
     params[:feature_uri] = params[:prediction_feature]
 		fminer_task_uri = OpenTox::Algorithm::Fminer.create_feature_dataset(params)
 		fminer_task = OpenTox::Task.find(fminer_task_uri)
-		fminer_task.parent = task
+		fminer_task.parent = task if task
 		fminer_task.wait_for_completion
 		raise "fminer failed" if fminer_task.failed?
     
