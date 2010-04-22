@@ -41,7 +41,6 @@ post '/fminer/?' do
 
 	pid = Spork.spork(:logger => LOGGER) do
 
-		task.started
 		LOGGER.debug "Fminer task #{task.uri} started"
 
 		feature_dataset = OpenTox::Dataset.new

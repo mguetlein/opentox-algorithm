@@ -48,10 +48,10 @@ post '/lazar/?' do # create a model
 		fminer_task = OpenTox::Task.find(fminer_task_uri)
 		fminer_task.parent = task if task
 		fminer_task.wait_for_completion
-		raise "fminer failed" if fminer_task.failed?
+		raise "fminer failed" if fminer_task.error?
     
 		LOGGER.debug "Fminer finished #{Time.now}"
-		feature_dataset_uri = fminer_task.resource.to_s
+		feature_dataset_uri = fminer_task.resultURI.to_s
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 		lazar = OpenTox::Model::Lazar.new
