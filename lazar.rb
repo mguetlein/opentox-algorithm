@@ -55,8 +55,8 @@ post '/lazar/?' do # create a model
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 		lazar = OpenTox::Model::Lazar.new
-		lazar.dependent_variables = params[:prediction_feature]+"_lazar_classification"
-		lazar.activity_dataset_uri = dataset_uri
+		lazar.dependentVariables = params[:prediction_feature]+"_lazar_classification"
+		lazar.trainingDataset = dataset_uri
 		lazar.feature_dataset_uri = feature_dataset_uri
 		halt 404, "More than one descriptor type" unless training_features.features.size == 1
 		bbrc = training_features.features.first
