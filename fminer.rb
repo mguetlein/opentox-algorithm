@@ -8,8 +8,8 @@ get '/fminer/?' do
 		rdf = File.read('public/fminer.owl')
 	else
 		owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
-		owl.title = "fminer"
-		owl.source = "http://github.com/amaunz/libfminer"
+		owl.set 'title',"fminer"
+		owl.set 'creator',"http://github.com/amaunz/libfminer"
 		owl.parameters = {
 			"Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
 			"Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
@@ -46,7 +46,7 @@ post '/fminer/?' do
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
 		feature_dataset.title = title
-		feature_dataset.source = url_for('/fminer',:full)
+		feature_dataset.creator = url_for('/fminer',:full)
 		bbrc_uri = url_for("/fminer#BBRC_representative",:full)
 		feature_dataset.features << bbrc_uri
 

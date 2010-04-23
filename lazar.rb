@@ -3,8 +3,8 @@ get '/lazar/?' do
 		rdf = File.read('public/lazar.owl')
 	else
 		owl = OpenTox::Owl.create 'Algorithm', url_for('/lazar',:full)
-		owl.title = "lazar"
-		owl.source = "http://github.com/helma/opentox-algorithm"
+		owl.set 'title',"lazar"
+		owl.set 'creator',"http://github.com/helma/opentox-algorithm"
 		owl.parameters = {
 			"Dataset URI" =>
 				{ :scope => "mandatory", :value => "dataset_uri" },
