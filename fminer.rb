@@ -37,11 +37,7 @@ post '/fminer/?' do
 	end
 	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}." unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
-	task = OpenTox::Task.create
-
-	pid = Spork.spork(:logger => LOGGER) do
-
-		LOGGER.debug "Fminer task #{task.uri} started"
+  task_uri = OpenTox::Task.as_task do 
 
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
@@ -122,12 +118,9 @@ post '/fminer/?' do
 		# this takes too long for large datasets
 		uri = feature_dataset.save 
 		LOGGER.debug "Fminer finished, dataset #{uri} created."
-		task.completed(uri)
+    uri
 	end
-	task.pid = pid
-	LOGGER.debug "Task PID: " + pid.to_s
-	#status 303
+	LOGGER.debug "Fimer task started: "+task_uri.to_s
 	response['Content-Type'] = 'text/uri-list'
-	task.uri + "\n"
-
+	task_uri.to_s+"\n"
 end
