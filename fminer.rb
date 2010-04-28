@@ -122,5 +122,5 @@ post '/fminer/?' do
 	end
 	LOGGER.debug "Fimer task started: "+task_uri.to_s
 	response['Content-Type'] = 'text/uri-list'
-	task_uri.to_s+"\n"
+	halt 202,task_uri.to_s+"\n"
 end
