@@ -28,13 +28,14 @@ post '/fminer/?' do
 	LOGGER.debug "Dataset: " + params[:dataset_uri]
 	LOGGER.debug "Endpoint: " + params[:feature_uri]
 	feature_uri = params[:feature_uri]
-	begin
+	#begin
 		LOGGER.debug "Retrieving #{params[:dataset_uri]}"
 		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}"
-	rescue
+		LOGGER.debug training_dataset.to_yaml
+	#rescue
 		LOGGER.error "Dataset #{params[:dataset_uri]} not found" 
 		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
-	end
+	#end
 	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}." unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
   task_uri = OpenTox::Task.as_task do 
