@@ -1,3 +1,0 @@
-[submodule "libfminer"]
-	path = libfminer
-	url = git://github.com/amaunz/libfminer.git
