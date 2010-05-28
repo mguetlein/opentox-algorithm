@@ -31,7 +31,7 @@ post '/fminer/?' do
 	begin
 		LOGGER.debug "Retrieving #{params[:dataset_uri]}"
 		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}"
-		LOGGER.debug training_dataset.to_yaml
+		#LOGGER.debug training_dataset.to_yaml
 	rescue
 		LOGGER.error "Dataset #{params[:dataset_uri]} not found" 
 		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
