@@ -22,10 +22,17 @@ end
 
 post '/lazar/?' do # create a model
 
-	LOGGER.debug "Dataset: " + params[:dataset_uri].to_s
-	LOGGER.debug "Endpoint: " + params[:prediction_feature].to_s
-	LOGGER.debug "Feature generation: " + params[:feature_generation_uri].to_s
+	LOGGER.debug "Dataset: '" + params[:dataset_uri].to_s + "'"
+	LOGGER.debug "Endpoint: '" + params[:prediction_feature].to_s + "'"
+	LOGGER.debug "Feature generation: '" + params[:feature_generation_uri].to_s + "'"
 	dataset_uri = "#{params[:dataset_uri]}"
+
+
+	classification = true;
+	if (!params[:classification].nil?) 
+		classification = params[:classification]
+	end
+	LOGGER.debug "Classification: '" + classification.to_s + "'"
   
 	begin
 		training_activities = OpenTox::Dataset.find(dataset_uri)
