@@ -92,8 +92,9 @@ post '/lazar/?' do # create a model
 					lazar.activities[compound] << true
 				when "false"
 					lazar.activities[compound] << false
+				# AM: handle quantitative activity values of features
 				else 
-					lazar.activities[compound] << f.to_s
+					lazar.activities[compound] << feature[params[:prediction_feature]].to_f
 				end
 			end
 		end
