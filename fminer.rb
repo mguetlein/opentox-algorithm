@@ -79,7 +79,7 @@ post '/fminer/?' do
 							# AM: add quantitative activity
 							activity = act.to_f
 							@@fminer.SetRegression(true)
-							Logger.debug "Activity '" + act.to_s + "' switches fminer to regression".
+							Logger.debug "Activity '" + act.to_s + "' switches fminer to regression."
 						end
 						compounds[id] = c.to_s
 						begin
