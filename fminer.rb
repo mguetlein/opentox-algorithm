@@ -1,6 +1,6 @@
 ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
-@@fminer = Fminer::Fminer.new
+@@fminer = Fminer::Fminer.new 
 @@fminer.SetAromatic(true)
 
 get '/fminer/?' do
@@ -31,11 +31,12 @@ post '/fminer/?' do
 	begin
 		LOGGER.debug "Retrieving #{params[:dataset_uri]}"
 		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}"
+		#LOGGER.debug training_dataset.to_yaml
 	rescue
 		LOGGER.error "Dataset #{params[:dataset_uri]} not found" 
 		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
 	end
-	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}." unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
+	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
   task_uri = OpenTox::Task.as_task do 
 
@@ -87,7 +88,9 @@ post '/fminer/?' do
 				id += 1
 			end
 		end
-		LOGGER.debug "Fminer: initialised with #{id} compounds"
+		minfreq = (0.06*id).round
+		@@fminer.SetMinfreq(minfreq)
+		LOGGER.debug "Fminer: initialised with #{id} compounds, minimum frequency #{minfreq}"
 
     raise "no compounds" if compounds.size==0
 
