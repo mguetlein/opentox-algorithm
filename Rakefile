@@ -7,7 +7,7 @@ namespace "fminer" do
 	task :install do
 		puts `git submodule init`
 		puts `git submodule update`
-		Dir.chdir('libfminer')
+		Dir.chdir('libfminer/libbbrc')
 		puts `git checkout master`
 		puts `git pull`
 		puts `./configure`
@@ -23,7 +23,7 @@ namespace "fminer" do
 	desc "Update gems and fminer"
 	task :update do
 		puts `git submodule update`
-		Dir.chdir('libfminer')
+		Dir.chdir('libfminer/libbbrc')
 		puts `git checkout master`
 		puts `git pull`
 		puts `./configure`

@@ -1,7 +1,6 @@
 ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
-@@fminer = Fminer::Fminer.new 
-@@fminer.SetAromatic(true)
+@@fminer = Bbrc::Bbrc.new 
 
 get '/fminer/?' do
 	if File.exists?('public/fminer.owl')
@@ -9,7 +8,7 @@ get '/fminer/?' do
 	else
 		owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
 		owl.set 'title',"fminer"
-		owl.set 'creator',"http://github.com/amaunz/libfminer"
+		owl.set 'creator',"http://github.com/amaunz/fminer2"
 		owl.parameters = {
 			"Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
 			"Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
