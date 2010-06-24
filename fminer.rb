@@ -80,7 +80,7 @@ post '/fminer/?' do
 							@@fminer.AddCompound(smiles,id)
 							@@fminer.AddActivity(activity, id)
 						rescue
-							LOGGER.warn "Could not add " + smiles + "\t" + activity + " to fminer"
+							LOGGER.warn "Could not add " + smiles + "\t" + act.to_s + " to fminer"
 						end
 					end
 				end
