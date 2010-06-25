@@ -22,11 +22,11 @@ end
 
 post '/lazar/?' do # create a model
 
-	LOGGER.debug "Dataset: " + params[:dataset_uri].to_s
-	LOGGER.debug "Endpoint: " + params[:prediction_feature].to_s
-	LOGGER.debug "Feature generation: " + params[:feature_generation_uri].to_s
+	LOGGER.debug "Dataset: '" + params[:dataset_uri].to_s + "'"
+	LOGGER.debug "Endpoint: '" + params[:prediction_feature].to_s + "'"
+	LOGGER.debug "Feature generation: '" + params[:feature_generation_uri].to_s + "'"
 	dataset_uri = "#{params[:dataset_uri]}"
-  
+
 	begin
 		training_activities = OpenTox::Dataset.find(dataset_uri)
 	rescue
@@ -54,7 +54,6 @@ post '/lazar/?' do # create a model
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 		lazar = OpenTox::Model::Lazar.new
-		lazar.dependentVariables = params[:prediction_feature]+"_lazar_classification"
 		lazar.trainingDataset = dataset_uri
 		lazar.feature_dataset_uri = feature_dataset_uri
 		halt 404, "More than one descriptor type" unless training_features.features.size == 1
@@ -84,6 +83,7 @@ post '/lazar/?' do # create a model
 		end
 
 		activities = {}
+		classification = true
 		training_activities.data.each do |compound,features|
 			lazar.activities[compound] = [] unless lazar.activities[compound]
 			features.each do |feature|
@@ -92,10 +92,18 @@ post '/lazar/?' do # create a model
 					lazar.activities[compound] << true
 				when "false"
 					lazar.activities[compound] << false
+				# AM: handle quantitative activity values of features
 				else 
-					lazar.activities[compound] << f.to_s
+					lazar.activities[compound] << feature[params[:prediction_feature]].to_f
+					classification = false
 				end
 			end
+		end
+		# TODO: insert regression
+		if classification
+			lazar.dependentVariables = params[:prediction_feature]+"_lazar_classification"
+		else
+			lazar.dependentVariables = params[:prediction_feature]+"_lazar_regression"
 		end
 		
 		model_uri = lazar.save
