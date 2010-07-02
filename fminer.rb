@@ -30,7 +30,6 @@ post '/fminer/?' do
 	begin
 		LOGGER.debug "Retrieving #{params[:dataset_uri]}"
 		training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}"
-		#LOGGER.debug training_dataset.to_yaml
 	rescue
 		LOGGER.error "Dataset #{params[:dataset_uri]} not found" 
 		halt 404, "Dataset #{params[:dataset_uri]} not found." if training_dataset.nil? 
@@ -74,13 +73,17 @@ post '/fminer/?' do
 						when "false"
 							#LOGGER.debug id.to_s + ' "' + smiles +'"' +  "\t" + false.to_s
 							activity = 0
+						else
+							# AM: add quantitative activity
+							activity = act.to_f
+							@@fminer.SetRegression(true)
 						end
 						compounds[id] = c.to_s
 						begin
 							@@fminer.AddCompound(smiles,id)
 							@@fminer.AddActivity(activity, id)
 						rescue
-							LOGGER.warn "Could not add " + smiles + "\t" + activity + " to fminer"
+							LOGGER.warn "Could not add " + smiles + "\t" + act.to_s + " to fminer"
 						end
 					end
 				end
@@ -102,13 +105,24 @@ post '/fminer/?' do
 				f = YAML.load(result)[0]
 				smarts = f[0]
 				p_value = f[1]
-				ids = f[2] + f[3]
-				if f[2].size > f[3].size
-					effect = 'activating'
+				# AM: f[3] missing on regression
+				if (!@@fminer.GetRegression) 
+					ids = f[2] + f[3]
+					if f[2].size > f[3].size
+						effect = 'activating'
+					else
+						effect = 'deactivating'
+					end
 				else
-					effect = 'deactivating'
+					ids = f[2]
+					effect = 'activating' # AM: Pending: needs analysis of median act
 				end
-				tuple = { url_for('/fminer#smarts',:full) => smarts, url_for('/fminer#p_value',:full) => p_value.to_f, url_for('/fminer#effect',:full) => effect }
+
+				tuple = {
+					url_for('/fminer#smarts',:full) => smarts,
+					url_for('/fminer#p_value',:full) => p_value.to_f,
+					url_for('/fminer#effect',:full) => effect
+				}
 				#LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
 				ids.each do |id|
 					feature_dataset.data[compounds[id]] = [] unless feature_dataset.data[compounds[id]]
@@ -117,7 +131,6 @@ post '/fminer/?' do
 			end
 		end
 
-		# this takes too long for large datasets
 		uri = feature_dataset.save 
 		LOGGER.debug "Fminer finished, dataset #{uri} created."
     uri
