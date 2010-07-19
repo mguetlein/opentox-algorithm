@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'libfminer/libbbrc/bbrc' # has to be included before openbabel, otherwise we have strange SWIG overloading problems
-gem "opentox-ruby-api-wrapper", "= 1.5.7"
+gem "opentox-ruby-api-wrapper", "= 1.6.0"
 require 'opentox-ruby-api-wrapper'
 
 LOGGER.progname = File.expand_path(__FILE__)
