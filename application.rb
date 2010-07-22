@@ -3,8 +3,6 @@ require File.join(File.expand_path(File.dirname(__FILE__)), 'libfminer/libbbrc/b
 gem "opentox-ruby-api-wrapper", "= 1.6.0"
 require 'opentox-ruby-api-wrapper'
 
-LOGGER.progname = File.expand_path(__FILE__)
-
 #require 'smarts.rb'
 #require 'similarity.rb'
 require 'openbabel.rb'
