@@ -22,9 +22,10 @@ end
 
 post '/lazar/?' do # create a model
 
-	LOGGER.debug "Dataset: '" + params[:dataset_uri].to_s + "'"
-	LOGGER.debug "Endpoint: '" + params[:prediction_feature].to_s + "'"
-	LOGGER.debug "Feature generation: '" + params[:feature_generation_uri].to_s + "'"
+  LOGGER.debug "Dataset: '" + params[:dataset_uri].to_s + "'"
+  LOGGER.debug "Endpoint: '" + params[:prediction_feature].to_s + "'"
+  LOGGER.debug "Feature generation: '" + params[:feature_generation_uri].to_s + "'"
+  LOGGER.debug "Token ID: #{params[:token_id]}"
 	dataset_uri = "#{params[:dataset_uri]}"
 
 	begin
@@ -54,6 +55,8 @@ post '/lazar/?' do # create a model
 		training_features = OpenTox::Dataset.find(feature_dataset_uri)
 		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
 		lazar = OpenTox::Model::Lazar.new
+    lazar.token_id = params[:token_id]
+    lazar.token_id = request.env["HTTP_TOKEN_ID"] if request.env["HTTP_TOKEN_ID"]
 		lazar.trainingDataset = dataset_uri
 		lazar.feature_dataset_uri = feature_dataset_uri
 		halt 404, "More than one descriptor type" unless training_features.features.size == 1
