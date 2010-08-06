@@ -1,7 +1,7 @@
 get '/lazar/?' do
-	if File.exists?('public/lazar.owl')
-		rdf = File.read('public/lazar.owl')
-	else
+	#if File.exists?('public/lazar.owl')
+		#rdf = File.read('public/lazar.owl')
+	#else
 		owl = OpenTox::Owl.create 'Algorithm', url_for('/lazar',:full)
 		owl.set 'title',"lazar"
 		owl.set 'creator',"http://github.com/helma/opentox-algorithm"
@@ -15,7 +15,7 @@ get '/lazar/?' do
 		}
 		rdf = owl.rdf
 		File.open('public/lazar.owl', 'w') {|f| f.print rdf}
-	end
+	#end
 	response['Content-Type'] = 'application/rdf+xml'
 	rdf
 end

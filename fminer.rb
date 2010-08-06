@@ -1,11 +1,12 @@
 ENV['FMINER_SMARTS'] = 'true'
+ENV['FMINER_NO_AROMATIC'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Bbrc::Bbrc.new 
 
 get '/fminer/?' do
-	if File.exists?('public/fminer.owl')
-		rdf = File.read('public/fminer.owl')
-	else
+	#if File.exists?('public/fminer.owl')
+		#rdf = File.read('public/fminer.owl')
+	#else
 		owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
 		owl.set 'title',"fminer"
 		owl.set 'creator',"http://github.com/amaunz/fminer2"
@@ -15,7 +16,7 @@ get '/fminer/?' do
 		}
 		rdf = owl.rdf
 		File.open('public/fminer.owl', 'w') {|f| f.print rdf}
-	end
+	#end
 	response['Content-Type'] = 'application/rdf+xml'
 	rdf
 end
@@ -48,8 +49,9 @@ post '/fminer/?' do
 		id = 1 # fminer start id is not 0
 		compounds = []
 
-        g_hash = Hash.new# DV: for effect calculation in regression part
+    g_hash = Hash.new# DV: for effect calculation in regression part
 		@@fminer.Reset
+    #@@fminer.SetChisqSig(0.99)
 		LOGGER.debug "Fminer: initialising ..."
         training_dataset.data.each do |c,features|
 			begin
@@ -92,9 +94,9 @@ post '/fminer/?' do
 				id += 1
 			end
 		end
-        g_array=g_hash.values # DV: calculation of global median for effect calculation
-        g_median=OpenTox::Utils.median(g_array)
-		minfreq = (0.06*id).round
+    g_array=g_hash.values # DV: calculation of global median for effect calculation
+    g_median=OpenTox::Utils.median(g_array)
+		minfreq = (0.02*id).round
 		@@fminer.SetMinfreq(minfreq)
 		LOGGER.debug "Fminer: initialised with #{id} compounds, minimum frequency #{minfreq}"
 
