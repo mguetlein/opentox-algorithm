@@ -4,19 +4,15 @@ ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Bbrc::Bbrc.new 
 
 get '/fminer/?' do
-	#if File.exists?('public/fminer.owl')
-		#rdf = File.read('public/fminer.owl')
-	#else
-		owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
-		owl.set 'title',"fminer"
-		owl.set 'creator',"http://github.com/amaunz/fminer2"
-		owl.parameters = {
-			"Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
-			"Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
-		}
-		rdf = owl.rdf
-		File.open('public/fminer.owl', 'w') {|f| f.print rdf}
-	#end
+  owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
+  owl.set 'title',"fminer"
+  owl.set 'creator',"http://github.com/amaunz/fminer2"
+  owl.parameters = {
+    "Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
+    "Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
+  }
+  rdf = owl.rdf
+  File.open('public/fminer.owl', 'w') {|f| f.print rdf}
 	response['Content-Type'] = 'application/rdf+xml'
 	rdf
 end
@@ -85,7 +81,7 @@ post '/fminer/?' do
 						begin
 							@@fminer.AddCompound(smiles,id)
 							@@fminer.AddActivity(activity, id)
-                            g_hash[id]=activity # DV: insert global information
+              g_hash[id]=activity # DV: insert global information
 						rescue
 							LOGGER.warn "Could not add " + smiles + "\t" + act.to_s + " to fminer"
 						end
