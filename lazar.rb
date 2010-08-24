@@ -112,3 +112,56 @@ post '/lazar/?' do # create a model
 	end
   halt 202,task_uri
 end
+
+
+# AM: Balancer wraps around /lazar
+post '/lazar-balanced/?' do # create a balanced model
+  LOGGER.debug "Dataset: '" + params[:dataset_uri].to_s + "'"
+  LOGGER.debug "Endpoint: '" + params[:prediction_feature].to_s + "'"
+  LOGGER.debug "Feature generation: '" + params[:feature_generation_uri].to_s + "'"
+  dataset_uri = "#{params[:dataset_uri]}"
+
+  begin
+    training_activities = OpenTox::Dataset.find(dataset_uri)
+  rescue
+    halt 404, "Dataset #{dataset_uri} not found" 
+  end
+
+  halt 404, "No prediction_feature parameter." unless params[:prediction_feature]
+  halt 404, "No feature_generation_uri parameter." unless params[:feature_generation_uri]
+  halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}. (features: "+
+  training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(params[:prediction_feature])
+
+  response['Content-Type'] = 'text/uri-list' 
+  task_uri = OpenTox::Task.as_task do |task|
+
+    # Split the dataset
+    bal = Balancer.new(training_activities, params[:prediction_feature], training_activities.creator)
+    balanced_datasets = []
+    if bal.datasets.size > 0
+      balanced_datasets = bal.datasets
+    end
+
+    model_uris = []
+    if balanced_datasets.size == 0
+      mtu = OpenTox::Algorithm::Lazar.create_model(:dataset_uri => params[:dataset_uri], :prediction_feature => params[:prediction_feature])
+      t = OpenTox::Task.find(mtu)
+      t.wait_for_completion
+      model_uris << t.resultURI
+    else
+      balanced_datasets.each do |bd| 
+        mtu = OpenTox::Algorithm::Lazar.create_model(:dataset_uri => bd, :prediction_feature => params[:prediction_feature])
+        t = OpenTox::Task.find(mtu)
+        t.wait_for_completion
+        model_uris << t.resultURI
+      end
+    end
+    lazar = OpenTox::Model::Lazar.new
+    lazar.models = model_uris
+
+    model_uri = lazar.save
+    LOGGER.info model_uri + " created #{Time.now}"
+    model_uri
+  end
+  halt 202,task_uri
+end
