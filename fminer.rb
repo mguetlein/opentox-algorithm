@@ -1,27 +1,24 @@
 ENV['FMINER_SMARTS'] = 'true'
+ENV['FMINER_NO_AROMATIC'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Bbrc::Bbrc.new 
 
 get '/fminer/?' do
-	if File.exists?('public/fminer.owl')
-		rdf = File.read('public/fminer.owl')
-	else
-		owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
-		owl.set 'title',"fminer"
-		owl.set 'creator',"http://github.com/amaunz/fminer2"
-		owl.parameters = {
-			"Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
-			"Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
-		}
-		rdf = owl.rdf
-		File.open('public/fminer.owl', 'w') {|f| f.print rdf}
-	end
+  owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
+  owl.set 'title',"fminer"
+  owl.set 'creator',"http://github.com/amaunz/fminer2"
+  owl.parameters = {
+    "Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
+    "Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
+  }
+  rdf = owl.rdf
+  File.open('public/fminer.owl', 'w') {|f| f.print rdf}
 	response['Content-Type'] = 'application/rdf+xml'
 	rdf
 end
 
 post '/fminer/?' do
-
+    
 	halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
 	halt 404, "Please submit a feature_uri." unless params[:feature_uri] and  !params[:feature_uri].nil?
 	LOGGER.debug "Dataset: " + params[:dataset_uri]
@@ -36,7 +33,7 @@ post '/fminer/?' do
 	end
 	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
-  task_uri = OpenTox::Task.as_task do 
+  task_uri = OpenTox::Task.as_task("Mine features", url_for('/fminer',:full)) do 
 
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
@@ -51,9 +48,11 @@ post '/fminer/?' do
 		id = 1 # fminer start id is not 0
 		compounds = []
 
+    g_hash = Hash.new# DV: for effect calculation in regression part
 		@@fminer.Reset
+    #@@fminer.SetChisqSig(0.99)
 		LOGGER.debug "Fminer: initialising ..."
-		training_dataset.data.each do |c,features|
+        training_dataset.data.each do |c,features|
 			begin
 				smiles = OpenTox::Compound.new(:uri => c.to_s).smiles
 			rescue
@@ -85,6 +84,7 @@ post '/fminer/?' do
 						begin
 							@@fminer.AddCompound(smiles,id)
 							@@fminer.AddActivity(activity, id)
+              g_hash[id]=activity # DV: insert global information
 						rescue
 							LOGGER.warn "Could not add " + smiles + "\t" + act.to_s + " to fminer"
 						end
@@ -93,7 +93,9 @@ post '/fminer/?' do
 				id += 1
 			end
 		end
-		minfreq = (0.06*id).round
+    g_array=g_hash.values # DV: calculation of global median for effect calculation
+    g_median=OpenTox::Utils.median(g_array)
+		minfreq = (0.02*id).round
 		@@fminer.SetMinfreq(minfreq)
 		LOGGER.debug "Fminer: initialised with #{id} compounds, minimum frequency #{minfreq}"
 
@@ -116,9 +118,19 @@ post '/fminer/?' do
 					else
 						effect = 'deactivating'
 					end
-				else
+				else #regression part
 					ids = f[2]
-					effect = 'activating' # AM: Pending: needs analysis of median act
+                    # DV: effect calculation
+                    f_arr=Array.new
+                    f[2].each do |id|
+                        f_arr.push(g_hash[id]) 
+                    end 
+                    f_median=OpenTox::Utils.median(f_arr)
+                    if g_median >= f_median 
+						effect = 'activating'
+					else
+						effect = 'deactivating'
+                    end
 				end
 
 				tuple = {

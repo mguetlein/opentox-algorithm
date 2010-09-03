@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'rake'
-require 'tasks/opentox'
+require 'opentox-ruby-api-wrapper'
+#require 'tasks/opentox'
 
 namespace "fminer" do
 	desc "Install required gems and fminer"
