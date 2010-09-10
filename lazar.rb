@@ -39,7 +39,7 @@ post '/lazar/?' do # create a model
     training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(params[:prediction_feature])
 
   response['Content-Type'] = 'text/uri-list' 
-  task_uri = OpenTox::Task.as_task("Create lazar model",url_for('/lazar',:full)) do |task|
+  task_uri = OpenTox::Task.as_task("Create lazar model",url_for('/lazar',:full), params) do |task|
 
 		# create features
 		LOGGER.debug "Starting fminer"
