@@ -7,12 +7,19 @@ get '/fminer/?' do
   owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
   owl.set 'title',"fminer"
   owl.set 'creator',"http://github.com/amaunz/fminer2"
-  owl.parameters = {
-    "Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
-    "Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
-  }
+  owl.set_data( {
+    "parameters" => [
+      { "title" => "Dataset URI", "paramScope" => "mandatory", "paramValue" => "dataset_uri" },
+      { "title" => "Feature URI for dependent variable", "paramScope" => "mandatory", "paramValue" => "feature_uri" }
+    ]
+  } )
+
+#  owl.parameters = {
+#    "Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
+#    "Feature URI for dependent variable" => { :scope => "mandatory", :value => "feature_uri" }
+#  }
   rdf = owl.rdf
-  File.open('public/fminer.owl', 'w') {|f| f.print rdf}
+  #File.open('public/fminer.owl', 'w') {|f| f.print rdf}
 	response['Content-Type'] = 'application/rdf+xml'
 	rdf
 end
