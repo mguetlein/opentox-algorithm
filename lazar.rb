@@ -1,19 +1,42 @@
 get '/lazar/?' do
-  owl = OpenTox::Owl.create 'Algorithm', url_for('/lazar',:full)
-  owl.set 'title',"lazar"
-  owl.set 'creator',"http://github.com/helma/opentox-algorithm"
-  owl.parameters = {
-    "Dataset URI" =>
-      { :scope => "mandatory", :value => "dataset_uri" },
-    "Feature URI for dependent variable" =>
-      { :scope => "mandatory", :value => "prediction_feature" },
-    "Feature generation URI" =>
-      { :scope => "mandatory", :value => "feature_generation_uri" }
-  }
-  rdf = owl.rdf
-  File.open('public/lazar.owl', 'w') {|f| f.print rdf}
+  uri = url_for('/lazar',:full)
+  owl = OpenTox::OwlSerializer.create 'Algorithm', uri
+  owl.annotation_property uri, DC.creator, "helma@in-silico.ch", XSD.string
+  owl.annotation_property uri, DC.contributor, "andreas@maunz.de", XSD.string
+  owl.annotation_property uri, DC.title, "lazar", XSD.string
+  owl.annotation_property uri, DC.source, "http://github.com/helma/opentox-algorithm", XSD.anyUri
+  owl.object_property uri, OT.parameters, File.join(uri,"dataset_uri"), XSD.anyUri
+  owl.object_property uri, OT.parameters, File.join(uri,"prediction_feature"), XSD.anyUri
+  owl.object_property uri, OT.parameters, File.join(uri,"feature_generation_uri"), XSD.anyUri
 	response['Content-Type'] = 'application/rdf+xml'
-	rdf
+	owl.rdf
+end
+
+get '/lazar/prediction_feature?' do
+  uri = url_for('/lazar/prediction_feature',:full)
+  owl = OpenTox::OwlSerializer.create 'Parameter', uri
+  owl.annotation_property uri, DC.description, "URI of the feature to be predicted", XSD.string
+  owl.annotation_property uri, OT.paramScope, "mandatory", XSD.string
+	response['Content-Type'] = 'application/rdf+xml'
+	owl.rdf
+end
+
+get '/lazar/feature_generation_uri?' do
+  uri = url_for('/lazar/feature_generation_uri',:full)
+  owl = OpenTox::OwlSerializer.create 'Parameter', uri
+  owl.annotation_property uri, DC.description, "URI of the feature_generation_algorithm", XSD.string
+  owl.annotation_property uri, OT.paramScope, "mandatory", XSD.string
+	response['Content-Type'] = 'application/rdf+xml'
+	owl.rdf
+end
+
+get '/lazar/dataset_uri?' do
+  uri = url_for('/lazar/dataset_uri',:full)
+  owl = OpenTox::OwlSerializer.create 'Parameter', uri
+  owl.annotation_property uri, DC.description, "URI of the training dataset", XSD.string
+  owl.annotation_property uri, OT.paramScope, "mandatory", XSD.string
+	response['Content-Type'] = 'application/rdf+xml'
+	owl.rdf
 end
 
 post '/lazar/?' do # create a model

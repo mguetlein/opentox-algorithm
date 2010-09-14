@@ -4,15 +4,15 @@ ENV['FMINER_PVALUES'] = 'true'
 @@fminer = Bbrc::Bbrc.new 
 
 get '/fminer/?' do
-  owl = OpenTox::Owl.create 'Algorithm', url_for('/fminer',:full)
-  owl.set 'title',"fminer"
-  owl.set 'creator',"http://github.com/amaunz/fminer2"
-  owl.set_data( {
-    "parameters" => [
-      { "title" => "Dataset URI", "paramScope" => "mandatory", "paramValue" => "dataset_uri" },
-      { "title" => "Feature URI for dependent variable", "paramScope" => "mandatory", "paramValue" => "feature_uri" }
-    ]
-  } )
+  owl = OpenTox::OwlSerializer.create 'Algorithm', url_for('/fminer',:full)
+  owl.annotate 'title',"fminer"
+  owl.annotate 'creator',"http://github.com/amaunz/fminer2"
+#  owl.set_data( {
+#    "parameters" => [
+#      { "title" => "Dataset URI", "paramScope" => "mandatory", "paramValue" => "dataset_uri" },
+#      { "title" => "Feature URI for dependent variable", "paramScope" => "mandatory", "paramValue" => "feature_uri" }
+#    ]
+#  } )
 
 #  owl.parameters = {
 #    "Dataset URI" => { :scope => "mandatory", :value => "dataset_uri" },
