@@ -93,6 +93,7 @@ post '/fminer/?' do
     g_array=g_hash.values # DV: calculation of global median for effect calculation
     g_median=OpenTox::Utils.median(g_array)
 		minfreq = (0.02*id).round
+		#minfreq = 5
 		@@fminer.SetMinfreq(minfreq)
 		LOGGER.debug "Fminer: initialised with #{id} compounds, minimum frequency #{minfreq}"
 
