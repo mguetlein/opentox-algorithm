@@ -13,8 +13,15 @@ get '/fminer/?' do
   }
   rdf = owl.rdf
   File.open('public/fminer.owl', 'w') {|f| f.print rdf}
-	response['Content-Type'] = 'application/rdf+xml'
-	rdf
+  
+  case request.env['HTTP_ACCEPT'].to_s
+  when /text\/html/
+    content_type "text/html"
+    OpenTox.text_to_html rdf
+  else
+    content_type 'application/rdf+xml'
+    rdf
+  end
 end
 
 post '/fminer/?' do

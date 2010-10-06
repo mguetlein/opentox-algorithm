@@ -1,5 +1,5 @@
 get '/lazar/?' do
-	#if File.exists?('public/lazar.owl')
+  #if File.exists?('public/lazar.owl')
 		#rdf = File.read('public/lazar.owl')
 	#else
 		owl = OpenTox::Owl.create 'Algorithm', url_for('/lazar',:full)
@@ -16,8 +16,15 @@ get '/lazar/?' do
 		rdf = owl.rdf
 		File.open('public/lazar.owl', 'w') {|f| f.print rdf}
 	#end
-	response['Content-Type'] = 'application/rdf+xml'
-	rdf
+	
+  case request.env['HTTP_ACCEPT'].to_s
+  when /text\/html/
+    content_type "text/html"
+    OpenTox.text_to_html rdf    
+  else
+    content_type 'application/rdf+xml'
+    rdf
+  end
 end
 
 post '/lazar/?' do # create a model
