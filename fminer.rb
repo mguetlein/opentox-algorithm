@@ -40,7 +40,7 @@ post '/fminer/?' do
 		feature_dataset.title = title
 		feature_dataset.creator = url_for('/fminer',:full)
 		feature_dataset.token_id = params[:token_id] if params[:token_id]
-		feature_dataset.token_id = CGI.unescape(request.env["HTTP_TOKEN_ID"]) if request.env["HTTP_TOKEN_ID"] and !feature_dataset.token_id
+		feature_dataset.token_id = CGI.unescape(request.env["HTTP_TOKEN_ID"]) if !feature_dataset.token_id and request.env["HTTP_TOKEN_ID"]
 		
 		bbrc_uri = url_for("/fminer#BBRC_representative",:full)
 		feature_dataset.features << bbrc_uri
