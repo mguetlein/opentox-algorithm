@@ -13,10 +13,21 @@ namespace "fminer" do
 		puts `git pull`
 		puts `./configure`
         if $? == 0
-            puts `echo "Fminer successfully configured."`
+            puts `echo "Fminer/LibBbrc successfully configured."`
         else
-            puts `echo "Fminer configuration failed!"`
+            puts `echo "Fminer/LibBbrc configuration failed!"`
             exit
+        end
+        puts `make ruby`
+        Dir.chdir('../liblast')
+        puts `git checkout master`
+        puts `git pull`
+        puts `./configure`
+        if $? == 0
+          puts `echo "Fminer/LibLast successfully configured."`
+        else
+          puts `echo "Fminer/LibLast configuration failed!"`
+          exit
         end
         puts `make ruby`
 	    end
