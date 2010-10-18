@@ -33,7 +33,7 @@ post '/fminer/?' do
 	end
 	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
-  task_uri = OpenTox::Task.as_task do 
+  task_uri = OpenTox::Task.as_task("Mine features", url_for('/fminer',:full)) do 
 
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
@@ -93,6 +93,7 @@ post '/fminer/?' do
     g_array=g_hash.values # DV: calculation of global median for effect calculation
     g_median=OpenTox::Utils.median(g_array)
 		minfreq = (0.02*id).round
+		#minfreq = 5
 		@@fminer.SetMinfreq(minfreq)
 		LOGGER.debug "Fminer: initialised with #{id} compounds, minimum frequency #{minfreq}"
 
