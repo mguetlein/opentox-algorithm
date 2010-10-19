@@ -172,14 +172,14 @@ post '/fminer/last/?' do
 	end
 	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
-  task_uri = OpenTox::Task.as_task("Mine features", url_for('/fminer',:full)) do 
+  task_uri = OpenTox::Task.as_task("Mine features", url_for('/fminer/last',:full)) do 
 
 		feature_dataset = OpenTox::Dataset.new
-		title = "BBRC representatives for " + training_dataset.title
+		title = "LAST-PM descriptors for " + training_dataset.title
 		feature_dataset.title = title
-		feature_dataset.creator = url_for('/fminer',:full)
-		bbrc_uri = url_for("/fminer#BBRC_representative",:full)
-		feature_dataset.features << bbrc_uri
+		feature_dataset.creator = url_for('/fminer/last',:full)
+		last_uri = url_for("/fminer#LAST-PM_descriptors",:full)
+		feature_dataset.features << last_uri
 
 		id = 1 # fminer start id is not 0
 		compounds = []
@@ -278,7 +278,7 @@ post '/fminer/last/?' do
 				#LOGGER.debug "#{f[0]}\t#{f[1]}\t#{effect}"
 				ids.each do |id|
 					feature_dataset.data[compounds[id]] = [] unless feature_dataset.data[compounds[id]]
-					feature_dataset.data[compounds[id]] << {bbrc_uri => tuple}
+					feature_dataset.data[compounds[id]] << {last_uri => tuple}
 				end
 			end
 		end
