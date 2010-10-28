@@ -9,7 +9,11 @@ namespace "fminer" do
     puts `git submodule init`
     puts `git submodule update`
     Dir.chdir('libfminer/libbbrc')
-    puts `git checkout master`
+    puts `git checkout Makefile`
+    #puts `git checkout master`
+    puts `git fetch`
+    puts `git checkout -f -b refactor origin/refactor`
+    puts `git checkout refactor`
     puts `git pull`
     puts `./configure`
     if $? == 0
@@ -20,7 +24,11 @@ namespace "fminer" do
     end
     puts `make ruby`
     Dir.chdir('../liblast')
-    puts `git checkout master`
+    puts `git checkout Makefile`
+    #puts `git checkout master`
+    puts `git fetch`
+    puts `git checkout -f -b refactor origin/refactor`
+    puts `git checkout refactor`
     puts `git pull`
     puts `./configure`
     if $? == 0
@@ -32,7 +40,7 @@ namespace "fminer" do
     puts `make ruby`
     Dir.chdir('../../last-utils')
     puts `git fetch`
-    puts `git checkout -b experimental origin/experimental`
+    puts `git checkout -f -b experimental origin/experimental`
     puts `git pull`
   end
 
@@ -40,7 +48,11 @@ namespace "fminer" do
   task :update do
     puts `git submodule update`
     Dir.chdir('libfminer/libbbrc')
-    puts `git checkout master`
+    puts `git checkout Makefile`
+    #puts `git checkout master`
+    puts `git fetch`
+    puts `git checkout -f -b refactor origin/refactor`
+    puts `git checkout refactor`
     puts `git pull`
     puts `./configure`
     if $? == 0
@@ -51,7 +63,11 @@ namespace "fminer" do
     end
     puts `make ruby`
     Dir.chdir('../liblast')
-    puts `git checkout master`
+    puts `git checkout Makefile`
+    #puts `git checkout master`
+    puts `git fetch`
+    puts `git checkout -f -b refactor origin/refactor`
+    puts `git checkout refactor`
     puts `git pull`
     puts `./configure`
     if $? == 0
@@ -63,7 +79,7 @@ namespace "fminer" do
     puts `make ruby`
     Dir.chdir('../../last-utils')
     puts `git fetch`
-    puts `git checkout -b experimental origin/experimental`
+    puts `git checkout -f -b experimental origin/experimental`
     puts `git pull`
   end
 end

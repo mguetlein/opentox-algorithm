@@ -19,7 +19,6 @@ end
 
 ['/fminer/bbrc/?','/fminer/?'].each do |path| # AM LAST: set bbrc as default
   post path do
-    require File.join(File.expand_path(File.dirname(__FILE__)), 'libfminer/libbbrc/bbrc') # has to be included before openbabel, otherwise we have strange SWIG overloading problems
     @@fminer = Bbrc::Bbrc.new 
     halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
     halt 404, "Please submit a feature_uri." unless params[:feature_uri] and  !params[:feature_uri].nil?
@@ -150,7 +149,7 @@ end
       LOGGER.debug "Fminer finished, dataset #{uri} created."
       uri
     end
-    LOGGER.debug "Fimer task started: "+task_uri.to_s
+    LOGGER.debug "Fminer task started: "+task_uri.to_s
     response['Content-Type'] = 'text/uri-list'
     halt 202,task_uri.to_s+"\n"
   end
@@ -158,7 +157,6 @@ end
 
 
 post '/fminer/last/?' do
-  require File.join(File.expand_path(File.dirname(__FILE__)), 'libfminer/liblast/last') # has to be included before openbabel, otherwise we have strange SWIG overloading problems
   @@fminer = Last::Last.new 
   halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
   halt 404, "Please submit a feature_uri." unless params[:feature_uri] and  !params[:feature_uri].nil?
@@ -187,7 +185,7 @@ post '/fminer/last/?' do
     compounds = []
     smi = [] # AM LAST: needed for matching the patterns back
 
-    g_hash = Hash.new# DV: for effect calculation in regression part
+    all_hash = Hash.new# DV: for effect calculation in regression part
     @@fminer.Reset
     #@@fminer.SetChisqSig(0.99)
     LOGGER.debug "Fminer: initialising ..."
@@ -224,7 +222,7 @@ post '/fminer/last/?' do
             begin
               @@fminer.AddCompound(smiles,id)
               @@fminer.AddActivity(activity, id)
-              g_hash[id]=activity # DV: insert global information
+              all_hash[id]=activity # DV: insert global information
             rescue
               LOGGER.warn "Could not add " + smiles + "\t" + act.to_s + " to fminer"
             end
@@ -233,8 +231,6 @@ post '/fminer/last/?' do
         id += 1
       end
     end
-    g_array=g_hash.values # DV: calculation of global median for effect calculation
-    g_median=OpenTox::Utils.median(g_array)
     minfreq = (0.02*id).round
     #minfreq = 5
     @@fminer.SetMinfreq(minfreq)
@@ -254,12 +250,13 @@ post '/fminer/last/?' do
     dom=lu.read(xml)                        # AM LAST: parse GraphML (needs hpricot, @ch: to be included in wrapper!)
     smarts=lu.smarts_rb(dom,'msa')          # AM LAST: converts patterns to LAST-SMARTS using msa variant (see last-pm.maunz.de)
     instances=lu.match_rb(smi,smarts)       # AM LAST: creates instantiations
-
     instances.each do |smarts, ids|
+      feat_hash = Hash[*(all_hash.select { |k,v| ids.include?(k) }.flatten)] # AM LAST: get activities of feature occurrences; see http://www.softiesonrails.com/2007/9/18/ruby-201-weird-hash-syntax
+      @@fminer.GetRegression() ? p_value = @@fminer.KSTest(all_hash.values, feat_hash.values).to_f : p_value = @@fminer.ChisqTest(all_hash.values, feat_hash.values).to_f
       tuple = {
         url_for('/fminer#smarts',:full) => smarts,
-        url_for('/fminer#p_value',:full) => nil, # AM LAST: TODO
-        url_for('/fminer#effect',:full) => nil   # AM LAST: TODO
+        url_for('/fminer#p_value',:full) => p_value.abs,
+        url_for('/fminer#effect',:full) => ((p_value>0)?'activating':'deactivating')
       }
       ids.each do |id|
         feature_dataset.data[compounds[id]] = [] unless feature_dataset.data[compounds[id]]
@@ -271,7 +268,7 @@ post '/fminer/last/?' do
     LOGGER.debug "Fminer finished, dataset #{uri} created."
     uri
   end
-  LOGGER.debug "Fimer task started: "+task_uri.to_s
+  LOGGER.debug "Fminer task started: "+task_uri.to_s
   response['Content-Type'] = 'text/uri-list'
   halt 202,task_uri.to_s+"\n"
 end
