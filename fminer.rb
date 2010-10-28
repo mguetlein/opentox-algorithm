@@ -246,17 +246,17 @@ post '/fminer/last/?' do
         xml << result
       end
     end
-    lu = LU.new
+    lu = LU.new                             # AM LAST: uses last-utils here
     dom=lu.read(xml)                        # AM LAST: parse GraphML (needs hpricot, @ch: to be included in wrapper!)
     smarts=lu.smarts_rb(dom,'msa')          # AM LAST: converts patterns to LAST-SMARTS using msa variant (see last-pm.maunz.de)
     instances=lu.match_rb(smi,smarts)       # AM LAST: creates instantiations
     instances.each do |smarts, ids|
       feat_hash = Hash[*(all_hash.select { |k,v| ids.include?(k) }.flatten)] # AM LAST: get activities of feature occurrences; see http://www.softiesonrails.com/2007/9/18/ruby-201-weird-hash-syntax
-      @@fminer.GetRegression() ? p_value = @@fminer.KSTest(all_hash.values, feat_hash.values).to_f : p_value = @@fminer.ChisqTest(all_hash.values, feat_hash.values).to_f
+      @@fminer.GetRegression() ? p_value = @@fminer.KSTest(all_hash.values, feat_hash.values).to_f : p_value = @@fminer.ChisqTest(all_hash.values, feat_hash.values).to_f # AM LAST: use internal function for test
       tuple = {
         url_for('/fminer#smarts',:full) => smarts,
         url_for('/fminer#p_value',:full) => p_value.abs,
-        url_for('/fminer#effect',:full) => ((p_value>0)?'activating':'deactivating')
+        url_for('/fminer#effect',:full) => ((p_value>0)?'activating':'deactivating') # AM LAST: sign decides about effect
       }
       ids.each do |id|
         feature_dataset.data[compounds[id]] = [] unless feature_dataset.data[compounds[id]]

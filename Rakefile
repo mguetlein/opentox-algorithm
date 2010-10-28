@@ -10,7 +10,7 @@ namespace "fminer" do
     puts `git submodule update`
     Dir.chdir('libfminer/libbbrc')
     puts `git checkout Makefile`
-    #puts `git checkout master`
+    #puts `git checkout master`   AM LAST: need branch 'refactor' until merged to master in fminer2
     puts `git fetch`
     puts `git checkout -f -b refactor origin/refactor`
     puts `git checkout refactor`
@@ -25,7 +25,7 @@ namespace "fminer" do
     puts `make ruby`
     Dir.chdir('../liblast')
     puts `git checkout Makefile`
-    #puts `git checkout master`
+    #puts `git checkout master`   AM LAST: need branch 'refactor' until merged to master in fminer2
     puts `git fetch`
     puts `git checkout -f -b refactor origin/refactor`
     puts `git checkout refactor`
@@ -40,7 +40,9 @@ namespace "fminer" do
     puts `make ruby`
     Dir.chdir('../../last-utils')
     puts `git fetch`
-    puts `git checkout -f -b experimental origin/experimental`
+    # AM LAST: need branch 'experimental' until merged to master in last-utils
+    puts `git checkout -f -b experimental origin/experimental` 
+    puts `git checkout experimental`
     puts `git pull`
   end
 
@@ -49,7 +51,7 @@ namespace "fminer" do
     puts `git submodule update`
     Dir.chdir('libfminer/libbbrc')
     puts `git checkout Makefile`
-    #puts `git checkout master`
+    #puts `git checkout master`   AM LAST: need branch 'refactor' until merged to master in fminer2
     puts `git fetch`
     puts `git checkout -f -b refactor origin/refactor`
     puts `git checkout refactor`
@@ -64,7 +66,7 @@ namespace "fminer" do
     puts `make ruby`
     Dir.chdir('../liblast')
     puts `git checkout Makefile`
-    #puts `git checkout master`
+    #puts `git checkout master`   AM LAST: need branch 'refactor' until merged to master in fminer2
     puts `git fetch`
     puts `git checkout -f -b refactor origin/refactor`
     puts `git checkout refactor`
@@ -79,7 +81,9 @@ namespace "fminer" do
     puts `make ruby`
     Dir.chdir('../../last-utils')
     puts `git fetch`
+    # AM LAST: need branch 'experimental' until merged to master in last-utils
     puts `git checkout -f -b experimental origin/experimental`
+    puts `git checkout experimental`
     puts `git pull`
   end
 end
