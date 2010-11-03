@@ -9,11 +9,7 @@ namespace "fminer" do
     puts `git submodule init`
     puts `git submodule update`
     Dir.chdir('libfminer/libbbrc')
-    puts `git checkout Makefile`
-    #puts `git checkout master`   AM LAST: need branch 'refactor' until merged to master in fminer2
-    puts `git fetch`
-    puts `git checkout -f -b refactor origin/refactor`
-    puts `git checkout refactor`
+    puts `git checkout master`
     puts `git pull`
     puts `./configure`
     if $? == 0
@@ -24,11 +20,7 @@ namespace "fminer" do
     end
     puts `make ruby`
     Dir.chdir('../liblast')
-    puts `git checkout Makefile`
-    #puts `git checkout master`   AM LAST: need branch 'refactor' until merged to master in fminer2
-    puts `git fetch`
-    puts `git checkout -f -b refactor origin/refactor`
-    puts `git checkout refactor`
+    puts `git checkout master`
     puts `git pull`
     puts `./configure`
     if $? == 0
@@ -51,10 +43,6 @@ namespace "fminer" do
     puts `git submodule update`
     Dir.chdir('libfminer/libbbrc')
     puts `git checkout Makefile`
-    #puts `git checkout master`   AM LAST: need branch 'refactor' until merged to master in fminer2
-    puts `git fetch`
-    puts `git checkout -f -b refactor origin/refactor`
-    puts `git checkout refactor`
     puts `git pull`
     puts `./configure`
     if $? == 0
@@ -66,10 +54,6 @@ namespace "fminer" do
     puts `make ruby`
     Dir.chdir('../liblast')
     puts `git checkout Makefile`
-    #puts `git checkout master`   AM LAST: need branch 'refactor' until merged to master in fminer2
-    puts `git fetch`
-    puts `git checkout -f -b refactor origin/refactor`
-    puts `git checkout refactor`
     puts `git pull`
     puts `./configure`
     if $? == 0
