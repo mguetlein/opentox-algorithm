@@ -2,55 +2,85 @@ ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_NO_AROMATIC'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 
+# Get list of fminer algorithms
+#
+# @return [text/uri-list] URIs of fminer algorithms
 get '/fminer/?' do
-
-  metadata = {
-    DC.title => 'fminer',
-    DC.identifier => url_for("",:full),
-    DC.creator => "andreas@maunz.de, helma@in-silico.ch",
-    DC.contributor => "vorgrimmlerdavid@gmx.de",
-    OT.isA => OTA.PatternMiningSupervised
-  }
-
-  parameters = [
-    { DC.description => "Dataset URI", OT.paramScope => "mandatory", OT.title => "dataset_uri" },
-    { DC.description => "Feature URI for dependent variable", OT.paramScope => "mandatory", OT.title => "prediction_feature" }
-  ]
-
-  s = OpenTox::Serializer::Owl.new
-  s.add_algorithm(url_for('/fminer',:full),metadata,parameters)
-	response['Content-Type'] = 'application/rdf+xml'
-  s.to_rdfxml
-
+	response['Content-Type'] = 'text/uri-list'
+	[ url_for('/fminer/bbrc', :full), url_for('/fminer/last', :full) ].join("\n") + "\n"
 end
 
-#post '/fminer/?' do
-['/fminer/bbrc/?','/fminer/?'].each do |path| # AM LAST: set bbrc as default
-  post path do
+# Get RDF/XML representation of fminer bbrc algorithm
+#
+# @return [application/rdf+xml] OWL-DL representation of fminer bbrc algorithm
+get "/fminer/bbrc/?" do
+	response['Content-Type'] = 'application/rdf+xml'
+  algorithm = OpenTox::Algorithm::Generic.new(url_for('/fminer/bbrc',:full))
+  algorithm.metadata = {
+    DC.title => 'fminer backbone refinement class representatives',
+    DC.creator => "andreas@maunz.de, helma@in-silico.ch",
+    DC.contributor => "vorgrimmlerdavid@gmx.de",
+    OT.isA => OTA.PatternMiningSupervised,
+    OT.parameters => [
+    { DC.description => "Dataset URI", OT.paramScope => "mandatory", DC.title => "dataset_uri" },
+    { DC.description => "Feature URI for dependent variable", OT.paramScope => "mandatory", DC.title => "prediction_feature" }
+    ]
+  }
+  algorithm.to_rdfxml
+end
+
+# Get RDF/XML representation of fminer last algorithm
+#
+# @return [application/rdf+xml] OWL-DL representation of fminer last algorithm
+get "/fminer/last/?" do
+  algorithm = OpenTox::Algorithm::Generic.new(url_for('/fminer/last',:full))
+  algorithm.metadata = {
+    DC.title => 'fminer latent structure class representatives',
+    DC.creator => "andreas@maunz.de, helma@in-silico.ch",
+    DC.contributor => "vorgrimmlerdavid@gmx.de",
+    OT.isA => OTA.PatternMiningSupervised,
+    OT.parameters => [
+    { DC.description => "Dataset URI", OT.paramScope => "mandatory", DC.title => "dataset_uri" },
+    { DC.description => "Feature URI for dependent variable", OT.paramScope => "mandatory", DC.title => "prediction_feature" }
+    ]
+  }
+  algorithm.to_rdfxml
+end
+
+# Run bbrc algorithm on dataset
+#
+# @param [URI] dataset_uri URI of the training dataset
+# @param [URI] prediction_feature URI of the prediction feature (i.e. dependent variable)
+# @param [optional, Integer] min_frequency minimum frequency (defaults to 5)
+# @return [text/uri-list] Task URI
+post '/fminer/bbrc/?' do 
+#['/fminer/bbrc/?','/fminer/?'].each do |path| # AM LAST: set bbrc as default
+  #post path do
     
+    # TODO: is this thread safe??
     @@fminer = Bbrc::Bbrc.new 
-    @@fminer.SetMinfreq(5)
+    minfreq = 5 unless minfreq = params[:min_frequency]
+    @@fminer.SetMinfreq(minfreq)
     @@fminer.SetConsoleOut(false)
 
     halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
     halt 404, "Please submit a prediction_feature." unless params[:prediction_feature] and  !params[:prediction_feature].nil?
     prediction_feature = params[:prediction_feature]
 
-    training_dataset = OpenTox::Dataset.new "#{params[:dataset_uri]}"
-    training_dataset.load_all
+    training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}"
     halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:prediction_feature])
 
     task_uri = OpenTox::Task.as_task("Mining BBRC features", url_for('/fminer',:full)) do 
 
       feature_dataset = OpenTox::Dataset.new
       feature_dataset.add_metadata({
-        DC.title => "BBRC representatives for " + training_dataset.metadata[DC.title],
+        DC.title => "BBRC representatives for " + training_dataset.metadata[DC.title].to_s,
         DC.creator => url_for('/fminer/bbrc',:full),
         OT.hasSource => url_for('/fminer/bbrc', :full),
-      })
-      feature_dataset.add_parameters({
-        "dataset_uri" => params[:dataset_uri],
-        "prediction_feature" => params[:prediction_feature]
+        OT.parameters => [
+          { DC.title => "dataset_uri", OT.paramValue => params[:dataset_uri] },
+          { DC.title => "prediction_feature", OT.paramValue => params[:prediction_feature] }
+        ]
       })
       feature_dataset.save
 
@@ -63,7 +93,7 @@ end
       @@fminer.Reset
       training_dataset.data_entries.each do |compound,entry|
         begin
-          smiles = OpenTox::Compound.new(compound.to_s).smiles
+          smiles = OpenTox::Compound.new(compound.to_s).to_smiles
         rescue
           LOGGER.warn "No resource for #{compound.to_s}"
           next
@@ -142,13 +172,19 @@ end
           feature_uri = File.join feature_dataset.uri,"feature","bbrc", features.size.to_s
           unless features.include? smarts
             features << smarts
-            # TODO insert correct ontology entries
             metadata = {
-              OT.hasSource => feature_dataset.uri,
+              OT.hasSource => url_for('/fminer/bbrc', :full),
+              OT.isA => OT.NominalFeature,
               OT.smarts => smarts,
               OT.p_value => p_value.to_f,
-              OT.effect => effect } 
+              OT.effect => effect,
+              OT.parameters => [
+                { DC.title => "dataset_uri", OT.paramValue => params[:dataset_uri] },
+                { DC.title => "prediction_feature", OT.paramValue => params[:prediction_feature] }
+              ]
+            }
             feature_dataset.add_feature feature_uri, metadata
+            #feature_dataset.add_feature_parameters feature_uri, feature_dataset.parameters
           end
           ids.each { |id| feature_dataset.add(compounds[id], feature_uri, true)}
         end
@@ -159,8 +195,13 @@ end
     response['Content-Type'] = 'text/uri-list'
     halt 202,task_uri.to_s+"\n"
   end
-end
+#end
 
+# Run last algorithm on a dataset
+#
+# @param [URI] dataset_uri URI of the training dataset
+# @param [URI] prediction_feature URI of the prediction feature (i.e. dependent variable)
+# @return [text/uri-list] Task URI
 post '/fminer/last/?' do
 
   @@fminer = Last::Last.new 
@@ -179,13 +220,13 @@ post '/fminer/last/?' do
 
     feature_dataset = OpenTox::Dataset.new
     feature_dataset.add_metadata({
-      DC.title => "LAST representatives for " + training_dataset.metadata[DC.title],
+      DC.title => "LAST representatives for " + training_dataset.metadata[DC.title].to_s,
       DC.creator => url_for('/fminer/last',:full),
       OT.hasSource => url_for('/fminer/last', :full),
-    })
-    feature_dataset.add_parameters({
-      "dataset_uri" => params[:dataset_uri],
-      "prediction_feature" => params[:prediction_feature]
+      OT.parameters => [
+        { DC.title => "dataset_uri", OT.paramValue => params[:dataset_uri] },
+        { DC.title => "prediction_feature", OT.paramValue => params[:prediction_feature] }
+      ]
     })
     feature_dataset.save
 
@@ -199,7 +240,7 @@ post '/fminer/last/?' do
     @@fminer.Reset
     training_dataset.data_entries.each do |compound,entry|
       begin
-        smiles = OpenTox::Compound.new(compound.to_s).smiles
+        smiles = OpenTox::Compound.new(compound.to_s).to_smiles
       rescue
         LOGGER.warn "No resource for #{compound.to_s}"
         next
@@ -272,7 +313,11 @@ post '/fminer/last/?' do
           OT.hasSource => feature_dataset.uri,
           OT.smarts => smarts,
           OT.p_value => p_value.to_f,
-          OT.effect => effect
+          OT.effect => effect,
+          OT.parameters => [
+            { DC.title => "dataset_uri", OT.paramValue => params[:dataset_uri] },
+            { DC.title => "prediction_feature", OT.paramValue => params[:prediction_feature] }
+          ]
         } 
         feature_dataset.add_feature feature_uri, metadata
       end
