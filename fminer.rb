@@ -11,7 +11,6 @@ get '/fminer/?' do
 end
 
 # Get RDF/XML representation of fminer bbrc algorithm
-#
 # @return [application/rdf+xml] OWL-DL representation of fminer bbrc algorithm
 get "/fminer/bbrc/?" do
 	response['Content-Type'] = 'application/rdf+xml'
@@ -23,14 +22,17 @@ get "/fminer/bbrc/?" do
     OT.isA => OTA.PatternMiningSupervised,
     OT.parameters => [
     { DC.description => "Dataset URI", OT.paramScope => "mandatory", DC.title => "dataset_uri" },
-    { DC.description => "Feature URI for dependent variable", OT.paramScope => "mandatory", DC.title => "prediction_feature" }
+    { DC.description => "Feature URI for dependent variable", OT.paramScope => "mandatory", DC.title => "prediction_feature" },
+    { DC.description => "Minimum frequency", OT.paramScope => "optional", DC.title => "minfreq" },
+    { DC.description => "Feature type, can be 'paths' or 'trees'", OT.paramScope => "optional", DC.title => "feature_type" },
+    { DC.description => "BBRC classes, pass 'false' to switch off mining for BBRC representatives.", OT.paramScope => "optional", DC.title => "backbone" },
+    { DC.description => "Significance threshold (between 0 and 1)", OT.paramScope => "optional", DC.title => "min_chisq_significance" },
     ]
   }
   algorithm.to_rdfxml
 end
 
 # Get RDF/XML representation of fminer last algorithm
-#
 # @return [application/rdf+xml] OWL-DL representation of fminer last algorithm
 get "/fminer/last/?" do
   algorithm = OpenTox::Algorithm::Generic.new(url_for('/fminer/last',:full))
@@ -41,7 +43,10 @@ get "/fminer/last/?" do
     OT.isA => OTA.PatternMiningSupervised,
     OT.parameters => [
     { DC.description => "Dataset URI", OT.paramScope => "mandatory", DC.title => "dataset_uri" },
-    { DC.description => "Feature URI for dependent variable", OT.paramScope => "mandatory", DC.title => "prediction_feature" }
+    { DC.description => "Feature URI for dependent variable", OT.paramScope => "mandatory", DC.title => "prediction_feature" },
+    { DC.description => "Minimum frequency", OT.paramScope => "optional", DC.title => "minfreq" },
+    { DC.description => "Feature type, can be 'paths' or 'trees'", OT.paramScope => "optional", DC.title => "feature_type" },
+    { DC.description => "Maximum number of hops", OT.paramScope => "optional", DC.title => "hops" },
     ]
   }
   algorithm.to_rdfxml
@@ -49,18 +54,23 @@ end
 
 # Run bbrc algorithm on dataset
 #
-# @param [URI] dataset_uri URI of the training dataset
-# @param [URI] prediction_feature URI of the prediction feature (i.e. dependent variable)
-# @param [optional, Integer] min_frequency minimum frequency (defaults to 5)
+# @param [String] dataset_uri URI of the training dataset
+# @param [String] prediction_feature URI of the prediction feature (i.e. dependent variable)
+# @param [optional] parameters BBRC parameters, accepted parameters are
+#   - minfreq  Minimum frequency (default 5)
+#   - feature_type Feature type, can be 'paths' or 'trees' (default "trees")
+#   - backbone BBRC classes, pass 'false' to switch off mining for BBRC representatives. (default "true")
+#   - min_chisq_significance Significance threshold (between 0 and 1)
 # @return [text/uri-list] Task URI
 post '/fminer/bbrc/?' do 
-#['/fminer/bbrc/?','/fminer/?'].each do |path| # AM LAST: set bbrc as default
-  #post path do
     
     # TODO: is this thread safe??
     @@fminer = Bbrc::Bbrc.new 
     minfreq = 5 unless minfreq = params[:min_frequency]
     @@fminer.SetMinfreq(minfreq)
+    @@fminer.SetType(1) if params[:feature_type] == "paths"
+    @@fminer.SetBackbone(params[:backbone]) if params[:backbone]
+    @@fminer.SetChisqSig(params[:min_chisq_significance]) if params[:min_chisq_significance]
     @@fminer.SetConsoleOut(false)
 
     halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
@@ -70,7 +80,7 @@ post '/fminer/bbrc/?' do
     training_dataset = OpenTox::Dataset.find "#{params[:dataset_uri]}"
     halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:prediction_feature])
 
-    task_uri = OpenTox::Task.as_task("Mining BBRC features", url_for('/fminer',:full)) do 
+    task = OpenTox::Task.create("Mining BBRC features", url_for('/fminer',:full)) do 
 
       feature_dataset = OpenTox::Dataset.new
       feature_dataset.add_metadata({
@@ -193,19 +203,26 @@ post '/fminer/bbrc/?' do
       feature_dataset.uri
     end
     response['Content-Type'] = 'text/uri-list'
-    halt 202,task_uri.to_s+"\n"
+    halt 202,task.uri.to_s+"\n"
   end
 #end
 
 # Run last algorithm on a dataset
 #
-# @param [URI] dataset_uri URI of the training dataset
-# @param [URI] prediction_feature URI of the prediction feature (i.e. dependent variable)
+# @param [String] dataset_uri URI of the training dataset
+# @param [String] prediction_feature URI of the prediction feature (i.e. dependent variable)
+# @param [optional] parameters LAST parameters, accepted parameters are
+#   - minfreq  Minimum frequency (default 5)
+#   - feature_type Feature type, can be 'paths' or 'trees' (default "trees")
+#   - hops Maximum number of hops
 # @return [text/uri-list] Task URI
 post '/fminer/last/?' do
 
   @@fminer = Last::Last.new 
-  @@fminer.SetMinfreq(5)
+  minfreq = 5 unless minfreq = params[:min_frequency]
+  @@fminer.SetMinfreq(minfreq)
+  @@fminer.SetType(1) if params[:feature_type] == "paths"
+  @@fminer.SetMaxHops(params[:hops]) if params[:hops]
   @@fminer.SetConsoleOut(false)
 
   halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
@@ -216,7 +233,7 @@ post '/fminer/last/?' do
   training_dataset.load_all
   halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:prediction_feature])
 
-  task_uri = OpenTox::Task.as_task("Mining LAST features", url_for('/fminer',:full)) do 
+  task = OpenTox::Task.create("Mining LAST features", url_for('/fminer',:full)) do 
 
     feature_dataset = OpenTox::Dataset.new
     feature_dataset.add_metadata({
@@ -327,5 +344,5 @@ post '/fminer/last/?' do
     feature_dataset.uri
   end
   response['Content-Type'] = 'text/uri-list'
-  halt 202,task_uri.to_s+"\n"
+  halt 202,task.uri.to_s+"\n"
 end
