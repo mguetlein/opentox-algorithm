@@ -2,6 +2,9 @@ ENV['FMINER_SMARTS'] = 'true'
 ENV['FMINER_NO_AROMATIC'] = 'true'
 ENV['FMINER_PVALUES'] = 'true'
 
+@@bbrc = Bbrc::Bbrc.new 
+@@last = Last::Last.new 
+
 # Get list of fminer algorithms
 #
 # @return [text/uri-list] URIs of fminer algorithms
@@ -65,13 +68,13 @@ end
 post '/fminer/bbrc/?' do 
     
     # TODO: is this thread safe??
-    @@fminer = Bbrc::Bbrc.new 
+    #@@bbrc = Bbrc::Bbrc.new 
     minfreq = 5 unless minfreq = params[:min_frequency]
-    @@fminer.SetMinfreq(minfreq)
-    @@fminer.SetType(1) if params[:feature_type] == "paths"
-    @@fminer.SetBackbone(params[:backbone]) if params[:backbone]
-    @@fminer.SetChisqSig(params[:min_chisq_significance]) if params[:min_chisq_significance]
-    @@fminer.SetConsoleOut(false)
+    @@bbrc.SetMinfreq(minfreq)
+    @@bbrc.SetType(1) if params[:feature_type] == "paths"
+    @@bbrc.SetBackbone(params[:backbone]) if params[:backbone]
+    @@bbrc.SetChisqSig(params[:min_chisq_significance]) if params[:min_chisq_significance]
+    @@bbrc.SetConsoleOut(false)
 
     halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
     halt 404, "Please submit a prediction_feature." unless params[:prediction_feature] and  !params[:prediction_feature].nil?
@@ -100,7 +103,7 @@ post '/fminer/bbrc/?' do
       nr_inactive=0
       all_activities = Hash.new# DV: for effect calculation in regression part
 
-      @@fminer.Reset
+      @@bbrc.Reset
       training_dataset.data_entries.each do |compound,entry|
         begin
           smiles = OpenTox::Compound.new(compound.to_s).to_smiles
@@ -126,11 +129,11 @@ post '/fminer/bbrc/?' do
                 activity = 0
               else
                 activity = value.to_f
-                @@fminer.SetRegression(true)
+                @@bbrc.SetRegression(true)
               end
               begin
-                @@fminer.AddCompound(smiles,id)
-                @@fminer.AddActivity(activity, id)
+                @@bbrc.AddCompound(smiles,id)
+                @@bbrc.AddActivity(activity, id)
                 all_activities[id]=activity # DV: insert global information
                 compounds[id] = compound
                 id += 1
@@ -148,16 +151,16 @@ post '/fminer/bbrc/?' do
       raise "No compounds in dataset #{training_dataset.uri}" if compounds.size==0
 
       features = Set.new
-      # run @@fminer
-      (0 .. @@fminer.GetNoRootNodes()-1).each do |j|
+      # run @@bbrc
+      (0 .. @@bbrc.GetNoRootNodes()-1).each do |j|
 
-        results = @@fminer.MineRoot(j)
+        results = @@bbrc.MineRoot(j)
         results.each do |result|
           f = YAML.load(result)[0]
           smarts = f[0]
           p_value = f[1]
 
-          if (!@@fminer.GetRegression) 
+          if (!@@bbrc.GetRegression) 
             ids = f[2] + f[3]
             if f[2].size.to_f/ids.size > nr_active.to_f/(nr_active+nr_inactive)
               effect = 'activating'
@@ -218,12 +221,12 @@ post '/fminer/bbrc/?' do
 # @return [text/uri-list] Task URI
 post '/fminer/last/?' do
 
-  @@fminer = Last::Last.new 
+  #@@last = Last::Last.new 
   minfreq = 5 unless minfreq = params[:min_frequency]
-  @@fminer.SetMinfreq(minfreq)
-  @@fminer.SetType(1) if params[:feature_type] == "paths"
-  @@fminer.SetMaxHops(params[:hops]) if params[:hops]
-  @@fminer.SetConsoleOut(false)
+  @@last.SetMinfreq(minfreq)
+  @@last.SetType(1) if params[:feature_type] == "paths"
+  @@last.SetMaxHops(params[:hops]) if params[:hops]
+  @@last.SetConsoleOut(false)
 
   halt 404, "Please submit a dataset_uri." unless params[:dataset_uri] and  !params[:dataset_uri].nil?
   halt 404, "Please submit a prediction_feature." unless params[:prediction_feature] and  !params[:prediction_feature].nil?
@@ -254,7 +257,7 @@ post '/fminer/last/?' do
     nr_inactive=0
     all_activities = Hash.new# DV: for effect calculation in regression part
 
-    @@fminer.Reset
+    @@last.Reset
     training_dataset.data_entries.each do |compound,entry|
       begin
         smiles = OpenTox::Compound.new(compound.to_s).to_smiles
@@ -280,11 +283,11 @@ post '/fminer/last/?' do
               activity = 0
             else
               activity = value.to_f
-              @@fminer.SetRegression(true)
+              @@last.SetRegression(true)
             end
             begin
-              @@fminer.AddCompound(smiles,id)
-              @@fminer.AddActivity(activity, id)
+              @@last.AddCompound(smiles,id)
+              @@last.AddActivity(activity, id)
               all_activities[id]=activity # DV: insert global information
               compounds[id] = compound
               smi[id] = smiles # AM LAST: changed this to store SMILES.
@@ -302,12 +305,12 @@ post '/fminer/last/?' do
     
     raise "No compounds in dataset #{training_dataset.uri}" if compounds.size==0
 
-    # run @@fminer
+    # run @@last
     features = Set.new
     xml = ""
 
-    (0 .. @@fminer.GetNoRootNodes()-1).each do |j|
-      results = @@fminer.MineRoot(j)
+    (0 .. @@last.GetNoRootNodes()-1).each do |j|
+      results = @@last.MineRoot(j)
       results.each do |result|
         xml << result
       end
@@ -319,7 +322,7 @@ post '/fminer/last/?' do
     instances=lu.match_rb(smi,smarts)       # AM LAST: creates instantiations
     instances.each do |smarts, ids|
       feat_hash = Hash[*(all_activities.select { |k,v| ids.include?(k) }.flatten)] # AM LAST: get activities of feature occurrences; see http://www.softiesonrails.com/2007/9/18/ruby-201-weird-hash-syntax
-      @@fminer.GetRegression() ? p_value = @@fminer.KSTest(all_activities.values, feat_hash.values).to_f : p_value = @@fminer.ChisqTest(all_activities.values, feat_hash.values).to_f # AM LAST: use internal function for test
+      @@last.GetRegression() ? p_value = @@last.KSTest(all_activities.values, feat_hash.values).to_f : p_value = @@last.ChisqTest(all_activities.values, feat_hash.values).to_f # AM LAST: use internal function for test
 
 
       effect = (p_value > 0) ? "activating" : "deactivating"
