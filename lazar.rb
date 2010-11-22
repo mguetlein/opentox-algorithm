@@ -87,7 +87,7 @@ post '/lazar/?' do
           lazar.fingerprints[compound] << smarts
           unless lazar.features.include? smarts
             lazar.features << smarts
-            lazar.p_values[smarts] = training_features.features[feature][OT.p_value]
+            lazar.p_values[smarts] = training_features.features[feature][OT.pValue]
             lazar.effects[smarts] = training_features.features[feature][OT.effect]
           end
         else

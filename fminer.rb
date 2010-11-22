@@ -187,9 +187,9 @@ post '/fminer/bbrc/?' do
             features << smarts
             metadata = {
               OT.hasSource => url_for('/fminer/bbrc', :full),
-              OT.isA => OT.NominalFeature,
+              OT.isA => OT.Substructure,
               OT.smarts => smarts,
-              OT.p_value => p_value.to_f,
+              OT.pValue => p_value.to_f,
               OT.effect => effect,
               OT.parameters => [
                 { DC.title => "dataset_uri", OT.paramValue => params[:dataset_uri] },
@@ -330,9 +330,10 @@ post '/fminer/last/?' do
       unless features.include? smarts
         features << smarts
         metadata = {
+          OT.isA => OT.Substructure,
           OT.hasSource => feature_dataset.uri,
           OT.smarts => smarts,
-          OT.p_value => p_value.to_f,
+          OT.pValue => p_value.to_f,
           OT.effect => effect,
           OT.parameters => [
             { DC.title => "dataset_uri", OT.paramValue => params[:dataset_uri] },
