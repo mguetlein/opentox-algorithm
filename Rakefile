@@ -1,7 +1,6 @@
 require 'rubygems'
 require 'rake'
-require 'opentox-ruby-api-wrapper'
-#require 'tasks/opentox'
+require 'opentox-ruby'
 
 namespace "fminer" do
   desc "Install required gems and fminer"
@@ -40,7 +39,7 @@ namespace "fminer" do
 
   desc "Update gems and fminer"
   task :update do
-    puts `git submodule update`
+    puts `git submodule update --init`
     Dir.chdir('libfminer/libbbrc')
     puts `git checkout Makefile`
     puts `git pull`
