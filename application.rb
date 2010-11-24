@@ -3,8 +3,8 @@ require 'rubygems'
 require File.join(File.expand_path(File.dirname(__FILE__)), 'libfminer/libbbrc/bbrc') # has to be included before openbabel, otherwise we have strange SWIG overloading problems
 require File.join(File.expand_path(File.dirname(__FILE__)), 'libfminer/liblast/last') # has to be included before openbabel, otherwise we have strange SWIG overloading problems
 require File.join(File.expand_path(File.dirname(__FILE__)), 'last-utils/lu.rb') # AM LAST
-gem "opentox-ruby-api-wrapper", "= 1.6.6"
-require 'opentox-ruby-api-wrapper'
+gem "opentox-ruby", "~> 0"
+require 'opentox-ruby'
 
 #require 'smarts.rb'
 #require 'similarity.rb'
