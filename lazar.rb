@@ -47,7 +47,6 @@ post '/lazar/?' do
 	halt 404, "No feature #{prediction_feature} in dataset #{params[:dataset_uri]}. (features: "+
     training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(prediction_feature)
 
-  response['Content-Type'] = 'text/uri-list' 
   task = OpenTox::Task.create("Create lazar model",url_for('/lazar',:full)) do |task|
 
 		lazar = OpenTox::Model::Lazar.new
@@ -143,6 +142,8 @@ post '/lazar/?' do
 		LOGGER.info model_uri + " created #{Time.now}"
     model_uri
 	end
+  response['Content-Type'] = 'text/uri-list' 
+  halt 503,task.uri+"\n" if task.status == "Cancelled"
   halt 202,task.uri
 end
 

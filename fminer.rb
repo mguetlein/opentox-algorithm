@@ -206,6 +206,7 @@ post '/fminer/bbrc/?' do
       feature_dataset.uri
     end
     response['Content-Type'] = 'text/uri-list'
+    halt 503,task.uri+"\n" if task.status == "Cancelled"
     halt 202,task.uri.to_s+"\n"
   end
 #end
@@ -348,5 +349,6 @@ post '/fminer/last/?' do
     feature_dataset.uri
   end
   response['Content-Type'] = 'text/uri-list'
+  halt 503,task.uri+"\n" if task.status == "Cancelled"
   halt 202,task.uri.to_s+"\n"
 end
