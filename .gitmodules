@@ -1,3 +1,6 @@
 [submodule "libfminer"]
 	path = libfminer
 	url = http://github.com/amaunz/fminer2.git
+[submodule "last-utils"]
+	path = last-utils
+	url = git://github.com/amaunz/last-utils.git

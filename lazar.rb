@@ -1,194 +1,151 @@
+@@feature_generation_default = File.join(CONFIG[:services]["opentox-algorithm"],"fminer","bbrc")
+
+# Get RDF/XML representation of the lazar algorithm
+# @return [application/rdf+xml] OWL-DL representation of the lazar algorithm
 get '/lazar/?' do
-  owl = OpenTox::Owl.create 'Algorithm', url_for('/lazar',:full)
-  owl.set 'title',"lazar"
-  owl.set 'creator',"http://github.com/helma/opentox-algorithm"
-  owl.parameters = {
-    "Dataset URI" =>
-      { :scope => "mandatory", :value => "dataset_uri" },
-    "Feature URI for dependent variable" =>
-      { :scope => "mandatory", :value => "prediction_feature" },
-    "Feature generation URI" =>
-      { :scope => "mandatory", :value => "feature_generation_uri" }
-  }
-  rdf = owl.rdf
-  File.open('public/lazar.owl', 'w') {|f| f.print rdf}
 	response['Content-Type'] = 'application/rdf+xml'
-	rdf
+  algorithm = OpenTox::Algorithm::Generic.new(url_for('/lazar',:full))
+  algorithm.metadata = {
+    DC.title => 'lazar',
+    DC.creator => "helma@in-silico.ch, andreas@maunz.de",
+    DC.contributor => "vorgrimmlerdavid@gmx.de",
+    OT.isA => OTA.ClassificationLazySingleTarget,
+    OT.parameters => [
+      { DC.description => "Dataset URI with the dependent variable", OT.paramScope => "mandatory", DC.title => "dataset_uri" },
+      { DC.description => "Feature URI for dependent variable. Optional for datasets with only a single feature.", OT.paramScope => "optional", DC.title => "prediction_feature" },
+      { DC.description => "URI of feature genration service. Default: #{@@feature_generation_default}", OT.paramScope => "optional", DC.title => "feature_generation_uri" },
+      { DC.description => "URI of feature dataset. If this parameter is set no feature generation algorithm will be called", OT.paramScope => "optional", DC.title => "feature_dataset_uri" },
+      { DC.description => "Further parameters for the feaature generation service", OT.paramScope => "optional" }
+    ]
+  }
+  algorithm.to_rdfxml
 end
 
-post '/lazar/?' do # create a model
+# Create a lazar prediction model
+# @param [String] dataset_uri Training dataset URI
+# @param [optional,String] prediction_feature URI of the feature to be predicted
+# @param [optional,String] feature_generation_uri URI of the feature generation algorithm 
+# @param [optional] - further parameters for the feature generation service 
+# @ return [text/uri-list] Task URI 
+post '/lazar/?' do 
 
-  LOGGER.debug "Dataset: '" + params[:dataset_uri].to_s + "'"
-  LOGGER.debug "Endpoint: '" + params[:prediction_feature].to_s + "'"
-  LOGGER.debug "Feature generation: '" + params[:feature_generation_uri].to_s + "'"
-  LOGGER.debug "Token ID: #{params[:token_id]}"
-	dataset_uri = "#{params[:dataset_uri]}"
+  halt 404, "No dataset_uri parameter." unless params[:dataset_uri]
+	dataset_uri = params[:dataset_uri]
 
-	begin
-		training_activities = OpenTox::Dataset.find(dataset_uri)
-	rescue
-		halt 404, "Dataset #{dataset_uri} not found" 
+  halt 404, "Dataset #{dataset_uri} not found." unless training_activities = OpenTox::Dataset.new(dataset_uri)
+  training_activities.load_all
+
+  prediction_feature = params[:prediction_feature]
+  unless prediction_feature # try to read prediction_feature from dataset
+    halt 404, "#{training_activities.features.size} features in dataset #{dataset_uri}. Please provide a  prediction_feature parameter." unless training_activities.features.size == 1
+    prediction_feature = training_activities.features.keys.first
+    params[:prediction_feature] = prediction_feature
   end
 
-  halt 404, "No prediction_feature parameter." unless params[:prediction_feature]
-	halt 404, "No feature_generation_uri parameter." unless params[:feature_generation_uri]
-	halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}. (features: "+
-    training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(params[:prediction_feature])
+  feature_generation_uri = @@feature_generation_default unless feature_generation_uri = params[:feature_generation_uri]
 
-  response['Content-Type'] = 'text/uri-list' 
-  task_uri = OpenTox::Task.as_task("Create lazar model",url_for('/lazar',:full)) do |task|
+	halt 404, "No feature #{prediction_feature} in dataset #{params[:dataset_uri]}. (features: "+
+    training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(prediction_feature)
 
-		# create features
-		LOGGER.debug "Starting fminer"
-    params[:feature_uri] = params[:prediction_feature]
-		fminer_task_uri = OpenTox::Algorithm::Fminer.create_feature_dataset(params)
-		fminer_task = OpenTox::Task.find(fminer_task_uri)
-		fminer_task.wait_for_completion
-		raise "fminer failed" unless fminer_task.completed?
-    
-		LOGGER.debug "Fminer finished #{Time.now}"
-		feature_dataset_uri = fminer_task.resultURI.to_s
-		training_features = OpenTox::Dataset.find(feature_dataset_uri)
-		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
+  task = OpenTox::Task.create("Create lazar model",url_for('/lazar',:full)) do |task|
+
 		lazar = OpenTox::Model::Lazar.new
     lazar.token_id = params[:token_id] if params[:token_id]
     lazar.token_id = request.env["HTTP_TOKEN_ID"] if !lazar.token_id and request.env["HTTP_TOKEN_ID"]
-		lazar.trainingDataset = dataset_uri
-		lazar.feature_dataset_uri = feature_dataset_uri
-		halt 404, "More than one descriptor type" unless training_features.features.size == 1
-		bbrc = training_features.features.first
-		training_features.data.each do |compound,features|
-			lazar.fingerprints[compound] = [] unless lazar.fingerprints[compound]
-			features.each do |feature|
-				tuple = feature[bbrc]
-				if tuple
-					smarts =nil; p_value = nil; effect = nil
-					tuple.each do |k,v|
-						case k
-						when /fminer#smarts/
-							smarts = v
-							lazar.features << smarts
-							lazar.fingerprints[compound] << smarts
-						when /fminer#p_value/
-							p_value = v
-						when /fminer#effect/
-							effect = v
-						end
-					end
-					lazar.p_values[smarts] = p_value
-					lazar.effects[smarts] = effect
-				end
-		  end
-		end
+    lazar.min_sim = params[:min_sim] if params[:min_sim] 
 
-		activities = {}
-		classification = true
-		training_activities.data.each do |compound,features|
-			lazar.activities[compound] = [] unless lazar.activities[compound]
-			features.each do |feature|
-				case feature[params[:prediction_feature]].to_s
-				when "true"
-					lazar.activities[compound] << true
-				when "false"
-					lazar.activities[compound] << false
-				# AM: handle quantitative activity values of features
-				else 
-					lazar.activities[compound] << feature[params[:prediction_feature]].to_f
-					classification = false
-				end
-			end
-		end
-		# TODO: insert regression
-		if classification
-			lazar.dependentVariables = params[:prediction_feature]+"_lazar_classification"
-		else
-			lazar.dependentVariables = params[:prediction_feature]+"_lazar_regression"
-		end
-		
-		model_uri = lazar.save
-		LOGGER.info model_uri + " created #{Time.now}"
-    model_uri
-	end
-  halt 202,task_uri
-end
-
-post '/property_lazar/?' do # create a model
-
-	LOGGER.debug "Dataset: '" + params[:dataset_uri].to_s + "'"
-	LOGGER.debug "Endpoint: '" + params[:prediction_feature].to_s + "'"
-	LOGGER.debug "Feature dataset: '" + params[:feature_dataset_uri].to_s + "'"
-	dataset_uri = "#{params[:dataset_uri]}"
-
-	begin
-		training_activities = OpenTox::Dataset.find(dataset_uri)
-	rescue
-		halt 404, "Dataset #{dataset_uri} not found" 
-  end
-
-  halt 404, "No prediction_feature parameter." unless params[:prediction_feature]
-	halt 404, "No feature_dataset_uri parameter." unless params[:feature_dataset_uri]
-	halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}. (features: "+
-    training_activities.features.inspect+")" unless training_activities.features and training_activities.features.include?(params[:prediction_feature])
-
-  response['Content-Type'] = 'text/uri-list' 
-  task_uri = OpenTox::Task.as_task("Create lazar model",url_for('/property_lazar',:full)) do |task|
-
-		# create features
-		#LOGGER.debug "Starting fminer"
-    #params[:feature_uri] = params[:prediction_feature]
-		#fminer_task_uri = OpenTox::Algorithm::Fminer.create_feature_dataset(params)
-		#fminer_task = OpenTox::Task.find(fminer_task_uri)
-		#fminer_task.wait_for_completion
-		#raise "fminer failed" unless fminer_task.completed?
-    
-		#LOGGER.debug "Fminer finished #{Time.now}"
-		feature_dataset_uri = params[:feature_dataset_uri]
-		training_features = OpenTox::Dataset.find(feature_dataset_uri)
-		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
-		lazar = OpenTox::Model::PropertyLazar.new
-		lazar.trainingDataset = dataset_uri
-		lazar.feature_dataset_uri = feature_dataset_uri
-		#halt 404, "More than one descriptor type" unless training_features.features.size == 1
-    lazar.features = training_features.features
-		training_features.data.each do |compound,features|
-			lazar.properties[compound] = {} unless lazar.properties[compound]
-      LOGGER.debug features.inspect
-      if features
-      features.each do |f|
-        f.each do |name,value|
-			#lazar.features.each do |feature|
-          lazar.properties[compound][name] = value
-        #lazar.properties[compound] = features
-        end
+		if params[:feature_dataset_uri]
+      feature_dataset_uri = params[:feature_dataset_uri]
+      training_features = OpenTox::Dataset.new(feature_dataset_uri)
+      case training_features.feature_type
+      when "classification"
+        lazar.similarity_algorithm = "Similarity.tanimoto"
+      when "regression"
+        lazar.similarity_algorithm = "Similarity.euclid"
       end
+    else # create features
+      params[:feature_generation_uri] = feature_generation_uri
+      if feature_generation_uri.match(/fminer/)
+        lazar.feature_calculation_algorithm = "Substructure.match"
+      else
+        halt 404, "External feature generation services not yet supported"
       end
+      feature_dataset_uri = OpenTox::Algorithm::Generic.new(feature_generation_uri).run(params).to_s
+      training_features = OpenTox::Dataset.new(feature_dataset_uri)
     end
 
-		activities = {}
-		classification = true
-		training_activities.data.each do |compound,features|
+    training_features.load_all
+		halt 404, "Dataset #{feature_dataset_uri} not found." if training_features.nil?
+
+    # sorted features for index lookups
+    lazar.features = training_features.features.sort if training_features.feature_type == "regression"
+
+    training_features.data_entries.each do |compound,entry|
+      lazar.fingerprints[compound] = [] unless lazar.fingerprints[compound]
+      entry.keys.each do |feature|
+        if feature_generation_uri.match(/fminer/)
+          smarts = training_features.features[feature][OT.smarts]
+          lazar.fingerprints[compound] << smarts
+          unless lazar.features.include? smarts
+            lazar.features << smarts
+            lazar.p_values[smarts] = training_features.features[feature][OT.pValue]
+            lazar.effects[smarts] = training_features.features[feature][OT.effect]
+          end
+        else
+          case training_features.feature_type
+          when "classification"
+            # fingerprints are sets
+            if entry[feature].flatten.size == 1
+              lazar.fingerprints[compound] << feature if entry[feature].flatten.first.to_s.match(TRUE_REGEXP)
+              lazar.features << feature unless lazar.features.include? feature
+            else
+              LOGGER.warn "More than one entry (#{entry[feature].inspect}) for compound #{compound}, feature #{feature}"
+            end
+          when "regression"
+            # fingerprints are arrays
+            if entry[feature].flatten.size == 1
+              lazar.fingerprints[compound][lazar.features.index(feature)] = entry[feature].flatten.first
+            else
+              LOGGER.warn "More than one entry (#{entry[feature].inspect}) for compound #{compound}, feature #{feature}"
+            end
+          end
+        end
+      end
+      
 			lazar.activities[compound] = [] unless lazar.activities[compound]
-			features.each do |feature|
-				case feature[params[:prediction_feature]].to_s
+      training_activities.data_entries[compound][params[:prediction_feature]].each do |value|
+				case value.to_s
 				when "true"
 					lazar.activities[compound] << true
 				when "false"
 					lazar.activities[compound] << false
 				else 
-					lazar.activities[compound] << feature[params[:prediction_feature]].to_f
-					classification = false
+          halt 404, "0 values not allowed in training dataset. log10 is calculated internally." if value.to_f == 0
+					lazar.activities[compound] << value.to_f
+          lazar.prediction_algorithm = "Neighbors.local_svm_regression"
 				end
 			end
-		end
-		if classification
-			lazar.dependentVariables = params[:prediction_feature]+"_lazar_classification"
-		else
-			lazar.dependentVariables = params[:prediction_feature]+"_lazar_regression"
-		end
+    end
+
+    lazar.metadata[DC.title] = "lazar model for #{URI.decode(File.basename(prediction_feature))}"
+    # TODO: fix dependentVariable
+    lazar.metadata[OT.dependentVariables] = params[:prediction_feature]
+    lazar.metadata[OT.trainingDataset] = dataset_uri
+		lazar.metadata[OT.featureDataset] = feature_dataset_uri
+    lazar.metadata[OT.isA] = OTA.ClassificationLazySingleTarget
+
+    lazar.metadata[OT.parameters] = [
+      {DC.title => "dataset_uri", OT.paramValue => dataset_uri},
+      {DC.title => "prediction_feature", OT.paramValue => prediction_feature},
+      {DC.title => "feature_generation_uri", OT.paramValue => feature_generation_uri}
+    ]
 		
 		model_uri = lazar.save
 		LOGGER.info model_uri + " created #{Time.now}"
     model_uri
 	end
-  halt 202,task_uri
+  response['Content-Type'] = 'text/uri-list' 
+  halt 503,task.uri+"\n" if task.status == "Cancelled"
+  halt 202,task.uri
 end
+
