@@ -195,7 +195,6 @@ post '/fminer/bbrc/?' do
               ]
             }
             feature_dataset.add_feature feature_uri, metadata
-            #feature_dataset.add_feature_parameters feature_uri, feature_dataset.parameters
           end
           ids.each { |id| feature_dataset.add(compounds[id], feature_uri, true)}
         end
@@ -207,10 +206,8 @@ post '/fminer/bbrc/?' do
     halt 503,task.uri+"\n" if task.status == "Cancelled"
     halt 202,task.uri.to_s+"\n"
   end
-#end
 
 # Run last algorithm on a dataset
-#
 # @param [String] dataset_uri URI of the training dataset
 # @param [String] prediction_feature URI of the prediction feature (i.e. dependent variable)
 # @param [optional] parameters LAST parameters, accepted parameters are
