@@ -6,7 +6,6 @@ ENV['FMINER_PVALUES'] = 'true'
 @@last = Last::Last.new 
 
 # Get list of fminer algorithms
-#
 # @return [text/uri-list] URIs of fminer algorithms
 get '/fminer/?' do
 	response['Content-Type'] = 'text/uri-list'
@@ -56,7 +55,6 @@ get "/fminer/last/?" do
 end
 
 # Run bbrc algorithm on dataset
-#
 # @param [String] dataset_uri URI of the training dataset
 # @param [String] prediction_feature URI of the prediction feature (i.e. dependent variable)
 # @param [optional] parameters BBRC parameters, accepted parameters are
