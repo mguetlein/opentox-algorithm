@@ -6,10 +6,11 @@ ENV['FMINER_PVALUES'] = 'true'
 @@last = Last::Last.new 
 
 # Get list of fminer algorithms
+#
 # @return [text/uri-list] URIs of fminer algorithms
 get '/fminer/?' do
-	response['Content-Type'] = 'text/uri-list'
-	[ url_for('/fminer/bbrc', :full), url_for('/fminer/last', :full) ].join("\n") + "\n"
+  response['Content-Type'] = 'text/uri-list'
+  [ url_for('/fminer/bbrc', :full), url_for('/fminer/last', :full) ].join("\n") + "\n"
 end
 
 # Get RDF/XML representation of fminer bbrc algorithm
@@ -55,6 +56,7 @@ get "/fminer/last/?" do
 end
 
 # Run bbrc algorithm on dataset
+#
 # @param [String] dataset_uri URI of the training dataset
 # @param [String] prediction_feature URI of the prediction feature (i.e. dependent variable)
 # @param [optional] parameters BBRC parameters, accepted parameters are
@@ -93,6 +95,8 @@ post '/fminer/bbrc/?' do
           { DC.title => "prediction_feature", OT.paramValue => params[:prediction_feature] }
         ]
       })
+      feature_dataset.token_id = params[:token_id] if params[:token_id]
+      feature_dataset.token_id = CGI.unescape(request.env["HTTP_TOKEN_ID"]) if !feature_dataset.token_id and request.env["HTTP_TOKEN_ID"]
       feature_dataset.save
 
       id = 1 # fminer start id is not 0
@@ -195,6 +199,7 @@ post '/fminer/bbrc/?' do
               ]
             }
             feature_dataset.add_feature feature_uri, metadata
+            #feature_dataset.add_feature_parameters feature_uri, feature_dataset.parameters
           end
           ids.each { |id| feature_dataset.add(compounds[id], feature_uri, true)}
         end
@@ -206,8 +211,10 @@ post '/fminer/bbrc/?' do
     halt 503,task.uri+"\n" if task.status == "Cancelled"
     halt 202,task.uri.to_s+"\n"
   end
+#end
 
 # Run last algorithm on a dataset
+#
 # @param [String] dataset_uri URI of the training dataset
 # @param [String] prediction_feature URI of the prediction feature (i.e. dependent variable)
 # @param [optional] parameters LAST parameters, accepted parameters are
@@ -229,6 +236,7 @@ post '/fminer/last/?' do
   prediction_feature = params[:prediction_feature]
 
   training_dataset = OpenTox::Dataset.new "#{params[:dataset_uri]}"
+  
   training_dataset.load_all
   halt 404, "No feature #{params[:prediction_feature]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:prediction_feature])
 
@@ -244,6 +252,8 @@ post '/fminer/last/?' do
         { DC.title => "prediction_feature", OT.paramValue => params[:prediction_feature] }
       ]
     })
+    feature_dataset.token_id = params[:token_id] if params[:token_id]
+    feature_dataset.token_id = CGI.unescape(request.env["HTTP_TOKEN_ID"]) if !feature_dataset.token_id and request.env["HTTP_TOKEN_ID"]
     feature_dataset.save
 
     id = 1 # fminer start id is not 0

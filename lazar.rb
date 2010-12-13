@@ -50,6 +50,8 @@ post '/lazar/?' do
   task = OpenTox::Task.create("Create lazar model",url_for('/lazar',:full)) do |task|
 
 		lazar = OpenTox::Model::Lazar.new
+    lazar.token_id = params[:token_id] if params[:token_id]
+    lazar.token_id = request.env["HTTP_TOKEN_ID"] if !lazar.token_id and request.env["HTTP_TOKEN_ID"]
     lazar.min_sim = params[:min_sim] if params[:min_sim] 
 
 		if params[:feature_dataset_uri]
@@ -69,7 +71,7 @@ post '/lazar/?' do
         halt 404, "External feature generation services not yet supported"
       end
       feature_dataset_uri = OpenTox::Algorithm::Generic.new(feature_generation_uri).run(params).to_s
-      training_features = OpenTox::Dataset.new(feature_dataset_uri)
+      training_features = OpenTox::Dataset.new(feature_dataset_uri, lazar.token_id)
     end
 
     training_features.load_all
