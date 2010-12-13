@@ -40,7 +40,7 @@ post '/fminer/?' do
 	end
 	halt 404, "No feature #{params[:feature_uri]} in dataset #{params[:dataset_uri]}" unless training_dataset.features and training_dataset.features.include?(params[:feature_uri])
 
-  task_uri = OpenTox::Task.as_task("Mine features", url_for('/fminer',:full), params) do 
+  task_uri = OpenTox::Task.as_task("Mine features", url_for('/fminer',:full), params) do |task|
 
 		feature_dataset = OpenTox::Dataset.new
 		title = "BBRC representatives for " + training_dataset.title
