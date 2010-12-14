@@ -50,8 +50,8 @@ post '/lazar/?' do
   task = OpenTox::Task.create("Create lazar model",url_for('/lazar',:full)) do |task|
 
 		lazar = OpenTox::Model::Lazar.new
-    token_id = params[:token_id] if params[:token_id]
-    token_id = request.env["HTTP_TOKEN_ID"] if !token_id and request.env["HTTP_TOKEN_ID"]
+    subjectid = params[:subjectid] if params[:subjectid]
+    subjectid = request.env["HTTP_SUBJECTID"] if !subjectid and request.env["HTTP_SUBJECTID"]
     lazar.min_sim = params[:min_sim] if params[:min_sim] 
 
 		if params[:feature_dataset_uri]
@@ -140,7 +140,7 @@ post '/lazar/?' do
       {DC.title => "feature_generation_uri", OT.paramValue => feature_generation_uri}
     ]
 		
-		model_uri = lazar.save(token_id)
+		model_uri = lazar.save(subjectid)
 		LOGGER.info model_uri + " created #{Time.now}"
     model_uri
 	end
