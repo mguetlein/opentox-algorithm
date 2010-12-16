@@ -95,9 +95,9 @@ post '/fminer/bbrc/?' do
           { DC.title => "prediction_feature", OT.paramValue => params[:prediction_feature] }
         ]
       })
-      feature_dataset.token_id = params[:token_id] if params[:token_id]
-      feature_dataset.token_id = CGI.unescape(request.env["HTTP_TOKEN_ID"]) if !feature_dataset.token_id and request.env["HTTP_TOKEN_ID"]
-      feature_dataset.save
+      subjectid = params[:subjectid] if params[:subjectid]
+      subjectid = CGI.unescape(request.env["HTTP_SUBJECTID"]) if !subjectid and request.env["HTTP_SUBJECTID"]
+      feature_dataset.save(subjectid)
 
       id = 1 # fminer start id is not 0
       compounds = []
@@ -204,7 +204,7 @@ post '/fminer/bbrc/?' do
           ids.each { |id| feature_dataset.add(compounds[id], feature_uri, true)}
         end
       end
-      feature_dataset.save 
+      feature_dataset.save(subjectid) 
       feature_dataset.uri
     end
     response['Content-Type'] = 'text/uri-list'
@@ -252,9 +252,9 @@ post '/fminer/last/?' do
         { DC.title => "prediction_feature", OT.paramValue => params[:prediction_feature] }
       ]
     })
-    feature_dataset.token_id = params[:token_id] if params[:token_id]
-    feature_dataset.token_id = CGI.unescape(request.env["HTTP_TOKEN_ID"]) if !feature_dataset.token_id and request.env["HTTP_TOKEN_ID"]
-    feature_dataset.save
+    subjectid = params[:subjectid] if params[:subjectid]
+    subjectid = CGI.unescape(request.env["HTTP_SUBJECTID"]) if !subjectid and request.env["HTTP_SUBJECTID"]
+    feature_dataset.save(subjectid)
 
     id = 1 # fminer start id is not 0
     compounds = []
@@ -350,7 +350,7 @@ post '/fminer/last/?' do
       end
       ids.each { |id| feature_dataset.add(compounds[id], feature_uri, true)}
     end
-    feature_dataset.save 
+    feature_dataset.save(subjectid) 
     feature_dataset.uri
   end
   response['Content-Type'] = 'text/uri-list'
