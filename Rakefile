@@ -30,10 +30,10 @@ namespace "fminer" do
     end
     puts `make ruby`
     Dir.chdir('../../last-utils')
-    puts `git fetch`
+    #puts `git fetch`
     # AM LAST: need branch 'experimental' until merged to master in last-utils
-    puts `git checkout -f -b experimental origin/experimental` 
-    puts `git checkout experimental`
+    #puts `git checkout -f -b experimental origin/experimental` 
+    puts `git checkout master`
     puts `git pull`
   end
 
@@ -63,10 +63,10 @@ namespace "fminer" do
     end
     puts `make ruby`
     Dir.chdir('../../last-utils')
-    puts `git fetch`
+    #puts `git fetch`
     # AM LAST: need branch 'experimental' until merged to master in last-utils
-    puts `git checkout -f -b experimental origin/experimental`
-    puts `git checkout experimental`
+    #puts `git checkout -f -b experimental origin/experimental`
+    puts `git checkout master`
     puts `git pull`
   end
 end

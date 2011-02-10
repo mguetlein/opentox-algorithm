@@ -25,8 +25,8 @@ end
 # @param [String] dataset_uri Training dataset URI
 # @param [optional,String] prediction_feature URI of the feature to be predicted
 # @param [optional,String] feature_generation_uri URI of the feature generation algorithm 
-# @param [optional] - further parameters for the feature generation service 
-# @ return [text/uri-list] Task URI 
+# @param [optional,String] - further parameters for the feature generation service 
+# @return [text/uri-list] Task URI 
 post '/lazar/?' do 
 
   halt 404, "No dataset_uri parameter." unless params[:dataset_uri]
