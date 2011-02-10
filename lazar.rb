@@ -68,6 +68,7 @@ post '/lazar/?' do
       else
         halt 404, "External feature generation services not yet supported"
       end
+      params[:subjectid] = @subjectid
       feature_dataset_uri = OpenTox::Algorithm::Generic.new(feature_generation_uri).run(params).to_s
       training_features = OpenTox::Dataset.new(feature_dataset_uri)
     end
